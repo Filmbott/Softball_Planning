@@ -12,12 +12,11 @@
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px;
+    padding: 0 24px 0 148px;
     height: 64px;
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(8px);
     overflow: visible;
-    position: fixed;
   }
   .nav-logo-wrap {
     display: flex; align-items: center;
@@ -60,6 +59,13 @@
     left: 0; right: 0;
     z-index: 2;
     text-align: center; padding: 0 24px; width: 100%; max-width: 100%;
+  }
+  .hero-lower {
+    position: absolute;
+    top: 58%;
+    left: 0; right: 0;
+    z-index: 2;
+    text-align: center;
   }
   .hero-church {
     font-size: clamp(22px, 3vw, 46px); font-weight: 800; color: #fff;
@@ -202,6 +208,8 @@
     <div class="hero-content">
       <h1 class="hero-church">Gospel Community Church Eugene</h1>
       <span class="hero-softball">SOFTBALL</span>
+    </div>
+    <div class="hero-lower">
       <div class="hero-divider"></div>
       <p class="hero-sub">Church League &middot; Summer 2026</p>
       <button class="hero-btn" onclick="showPage('batting')">Manage Roster</button>
