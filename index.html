@@ -9,25 +9,78 @@
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
 
   /* NAV */
-  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 32px; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
-  .nav-logo { height: 52px; width: 52px; object-fit: contain; border-radius: 50%; }
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    height: 56px;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    overflow: visible;
+  }
+  .nav-logo-wrap {
+    display: flex; align-items: center;
+    height: 112px; /* twice the nav bar */
+    margin-top: 28px; /* push it down so it pops below nav */
+    position: relative; z-index: 60;
+  }
+  .nav-logo {
+    height: 112px; width: 112px;
+    object-fit: contain;
+    border-radius: 50%;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
   .nav-links { display: flex; gap: 24px; list-style: none; }
-  .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; cursor: pointer; transition: color 0.2s; padding-bottom: 2px; border-bottom: 1px solid transparent; }
+  .nav-links a {
+    color: rgba(255,255,255,0.8); text-decoration: none;
+    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 500; cursor: pointer; transition: color 0.2s;
+    padding-bottom: 2px; border-bottom: 1px solid transparent;
+  }
   .nav-links a:hover { color: #fff; }
   .nav-links a.active { color: #fff; border-bottom-color: rgba(255,255,255,0.6); }
 
   /* HOME */
   #page-home { display: block; }
-  .hero { position: relative; width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #1a1a1a; }
-  .hero-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0f1f10 0%, #1e3320 35%, #2a1f0f 70%, #0f1a1f 100%); }
-  .hero-texture { position: absolute; inset: 0; opacity: 0.06; background-image: repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%); background-size: 8px 8px; }
-  .hero-glow { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%); }
-  .hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; width: 100%; max-width: 1000px; }
-  .hero-church { font-size: clamp(28px, 4.5vw, 64px); font-weight: 800; color: #fff; letter-spacing: 0.02em; line-height: 1.1; text-shadow: 0 2px 30px rgba(0,0,0,0.6); margin-bottom: 4px; }
-  .hero-softball { display: block; font-size: clamp(56px, 10vw, 136px); font-weight: 900; color: #fff; letter-spacing: 0.22em; line-height: 1; text-shadow: 0 2px 30px rgba(0,0,0,0.6); width: 100%; text-align: center; margin-bottom: 28px; }
+  .hero {
+    position: relative; width: 100%; height: 100vh;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background-image: url('https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/team-photo.jpeg');
+    background-size: cover; background-position: center;
+    background-color: #1a1a1a;
+  }
+  .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+  .hero-content {
+    position: relative; z-index: 2;
+    text-align: center; padding: 0 24px; width: 100%; max-width: 1100px;
+  }
+  .hero-church {
+    font-size: clamp(28px, 4vw, 58px); font-weight: 800; color: #fff;
+    letter-spacing: 0.02em; line-height: 1.1;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.7);
+    white-space: nowrap; margin-bottom: 0;
+  }
+  .hero-softball {
+    display: block;
+    font-size: clamp(60px, 11vw, 148px); font-weight: 900; color: #fff;
+    letter-spacing: 0.2em; line-height: 1;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.7);
+    width: 100%; text-align: center; margin-bottom: 28px;
+  }
   .hero-divider { width: 60px; height: 2px; background: rgba(255,255,255,0.35); margin: 0 auto 18px; }
-  .hero-sub { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 36px; }
-  .hero-btn { display: inline-block; padding: 13px 42px; border: 1px solid rgba(255,255,255,0.55); color: #fff; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; background: transparent; transition: all 0.25s; font-family: inherit; }
+  .hero-sub {
+    font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(255,255,255,0.55); margin-bottom: 36px;
+  }
+  .hero-btn {
+    display: inline-block; padding: 13px 42px;
+    border: 1px solid rgba(255,255,255,0.55); color: #fff;
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; background: transparent; transition: all 0.25s; font-family: inherit;
+  }
   .hero-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.8); }
 
   /* APP PAGES */
@@ -125,7 +178,9 @@
 
 <!-- NAV -->
 <nav>
-  <img class="nav-logo" src="https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/logo.png" alt="GCC Softball logo"/>
+  <div class="nav-logo-wrap">
+    <img class="nav-logo" src="https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png" alt="GCC Softball logo"/>
+  </div>
   <ul class="nav-links">
     <li><a onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
     <li><a onclick="showPage('batting')" id="nav-batting">Batting Order</a></li>
@@ -139,8 +194,7 @@
 <div id="page-home">
   <div class="hero">
     <div class="hero-bg"></div>
-    <div class="hero-texture"></div>
-    <div class="hero-glow"></div>
+    <div class="hero-overlay"></div>
     <div class="hero-content">
       <h1 class="hero-church">Gospel Community Church Eugene</h1>
       <span class="hero-softball">SOFTBALL</span>
@@ -285,45 +339,26 @@ window.showPage = function(page) {
 let userName = localStorage.getItem('softball_username') || '';
 const modal = document.getElementById('name-modal');
 const nameInput = document.getElementById('name-input');
-
 function checkName() {
-  if (!userName) {
-    modal.style.display = 'flex';
-    setTimeout(() => nameInput.focus(), 100);
-  } else {
-    modal.style.display = 'none';
-    updateUserDisplays();
-  }
+  if (!userName) { modal.style.display = 'flex'; setTimeout(() => nameInput.focus(), 100); }
+  else { modal.style.display = 'none'; updateUserDisplays(); }
 }
 function updateUserDisplays() {
   document.getElementById('user-display').textContent = userName;
   document.getElementById('user-display2').textContent = userName;
 }
 window.saveName = function() {
-  const v = nameInput.value.trim();
-  if (!v) return;
-  userName = v;
-  localStorage.setItem('softball_username', userName);
-  modal.style.display = 'none';
-  updateUserDisplays();
+  const v = nameInput.value.trim(); if (!v) return;
+  userName = v; localStorage.setItem('softball_username', userName);
+  modal.style.display = 'none'; updateUserDisplays();
 };
-window.changeName = function() {
-  nameInput.value = userName;
-  modal.style.display = 'flex';
-  nameInput.focus();
-};
+window.changeName = function() { nameInput.value = userName; modal.style.display = 'flex'; nameInput.focus(); };
 nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.saveName(); });
 
 // SYNC STATUS
 function setSyncStatus(status, text) {
-  ['sync-dot','sync-dot2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.className = 'sync-dot ' + status;
-  });
-  ['sync-label','sync-label2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  });
+  ['sync-dot','sync-dot2'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'sync-dot ' + status; });
+  ['sync-label','sync-label2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = text; });
 }
 
 // HISTORY
@@ -332,9 +367,7 @@ function logChange(desc) {
 }
 function formatTime(ts) {
   const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(m / 60);
-  const d = Math.floor(h / 24);
+  const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
   if (m < 1) return 'just now';
   if (m < 60) return m + 'm ago';
   if (h < 24) return h + 'h ago';
@@ -343,17 +376,12 @@ function formatTime(ts) {
 }
 function buildHistoryList(entries) {
   const list = document.getElementById('history-list');
-  if (!entries || !Object.keys(entries).length) {
-    list.innerHTML = '<li class="history-empty">No changes recorded yet.</li>';
-    return;
-  }
+  if (!entries || !Object.keys(entries).length) { list.innerHTML = '<li class="history-empty">No changes recorded yet.</li>'; return; }
   list.innerHTML = Object.values(entries).sort((a,b) => b.when - a.when).map(e =>
     '<li class="history-item"><div class="history-who">' + e.who + '</div><div class="history-what">' + e.what + '</div><div class="history-when">' + formatTime(e.when) + '</div></li>'
   ).join('');
 }
-window.clearHistory = function() {
-  if (confirm('Clear all history? This cannot be undone.')) remove(ref(db, 'history'));
-};
+window.clearHistory = function() { if (confirm('Clear all history? This cannot be undone.')) remove(ref(db,'history')); };
 
 // SAVE
 function saveToFirebase(desc) {
@@ -361,46 +389,32 @@ function saveToFirebase(desc) {
   setSyncStatus('syncing', 'Saving...');
   saveTimeout = setTimeout(() => {
     ignoreNext = true;
-    set(ref(db, 'roster'), state)
-      .then(() => { setSyncStatus('connected', 'All changes saved'); if (desc) logChange(desc); })
-      .catch(() => setSyncStatus('error', 'Save failed — check connection'));
+    set(ref(db,'roster'), state)
+      .then(() => { setSyncStatus('connected','All changes saved'); if (desc) logChange(desc); })
+      .catch(() => setSyncStatus('error','Save failed'));
   }, 600);
 }
 
 // DIAGRAM
-function shortName(n) {
-  if (!n) return '';
-  const p = n.split(' ');
-  return p[0] === 'Jesse' ? n : p[0];
-}
-function labelFor(pos) {
-  const p = pos.primary || '', b = pos.backup || '';
-  return (p && b) ? shortName(p) + ' / ' + shortName(b) : (p || '—');
-}
+function shortName(n) { if (!n) return ''; const p = n.split(' '); return p[0]==='Jesse' ? n : p[0]; }
+function labelFor(pos) { const p=pos.primary||'',b=pos.backup||''; return (p&&b) ? shortName(p)+' / '+shortName(b) : (p||'—'); }
 function updateDiagram() {
-  state.positions.forEach(pos => {
-    const el = document.getElementById('svg-' + pos.key + '-label');
-    if (el) el.textContent = labelFor(pos);
-  });
+  state.positions.forEach(pos => { const el = document.getElementById('svg-'+pos.key+'-label'); if (el) el.textContent = labelFor(pos); });
 }
 
-// BATTING ORDER
+// BATTING
 function buildAddSelect() {
   const sel = document.getElementById('add-select');
-  sel.innerHTML = '<option value="">Add a player...</option>' +
-    state.bench.map(n => '<option value="' + n + '">' + n + ' (#' + allPlayers[n] + ')</option>').join('');
+  sel.innerHTML = '<option value="">Add a player...</option>' + state.bench.map(n => '<option value="'+n+'">'+n+' (#'+allPlayers[n]+')</option>').join('');
 }
 function buildBatList() {
-  const list = document.getElementById('bat-list');
-  list.innerHTML = '';
+  const list = document.getElementById('bat-list'); list.innerHTML = '';
   state.order.forEach((name, i) => {
     const li = document.createElement('li');
-    li.className = 'bat-item';
-    li.draggable = true;
-    li.dataset.name = name;
-    li.innerHTML = '<span class="drag-handle">⠿</span><span class="bat-num">' + (i+1) + '.</span><span class="bat-name">' + name + '<span class="bat-jersey">#' + allPlayers[name] + '</span></span><button class="icon-btn remove" onclick="removePlayer(\'' + name + '\')">✕</button>';
-    li.addEventListener('dragstart', e => { dragSrc = li; li.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
-    li.addEventListener('dragend', () => { li.classList.remove('dragging'); document.querySelectorAll('.bat-item').forEach(x => x.classList.remove('drag-over')); });
+    li.className = 'bat-item'; li.draggable = true; li.dataset.name = name;
+    li.innerHTML = '<span class="drag-handle">⠿</span><span class="bat-num">'+(i+1)+'.</span><span class="bat-name">'+name+'<span class="bat-jersey">#'+allPlayers[name]+'</span></span><button class="icon-btn remove" onclick="removePlayer(\''+name+'\')">✕</button>';
+    li.addEventListener('dragstart', e => { dragSrc=li; li.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    li.addEventListener('dragend', () => { li.classList.remove('dragging'); document.querySelectorAll('.bat-item').forEach(x=>x.classList.remove('drag-over')); });
     li.addEventListener('dragover', e => { e.preventDefault(); li.classList.add('drag-over'); });
     li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
     li.addEventListener('drop', e => {
@@ -409,113 +423,56 @@ function buildBatList() {
         const items = [...list.querySelectorAll('.bat-item')];
         const fi = items.indexOf(dragSrc), ti = items.indexOf(li);
         const moved = state.order[fi];
-        const [m] = state.order.splice(fi, 1);
-        state.order.splice(ti, 0, m);
-        buildBatList();
-        saveToFirebase('Moved ' + moved + ' to spot ' + (ti + 1) + ' in batting order');
+        const [m] = state.order.splice(fi,1); state.order.splice(ti,0,m);
+        buildBatList(); saveToFirebase('Moved '+moved+' to spot '+(ti+1)+' in batting order');
       }
     });
     list.appendChild(li);
   });
 }
 function buildBenchList() {
-  const sec = document.getElementById('bench-section');
-  const list = document.getElementById('bench-list');
-  sec.style.display = state.bench.length ? 'block' : 'none';
-  list.innerHTML = '';
+  const sec = document.getElementById('bench-section'), list = document.getElementById('bench-list');
+  sec.style.display = state.bench.length ? 'block' : 'none'; list.innerHTML = '';
   state.bench.forEach(name => {
-    const li = document.createElement('li');
-    li.className = 'bench-item';
-    li.innerHTML = '<span class="bench-name">' + name + ' <span class="bat-jersey">#' + allPlayers[name] + '</span></span><button class="icon-btn restore" onclick="restorePlayer(\'' + name + '\')">＋</button>';
+    const li = document.createElement('li'); li.className = 'bench-item';
+    li.innerHTML = '<span class="bench-name">'+name+' <span class="bat-jersey">#'+allPlayers[name]+'</span></span><button class="icon-btn restore" onclick="restorePlayer(\''+name+'\')">＋</button>';
     list.appendChild(li);
   });
 }
-window.removePlayer = function(name) {
-  state.order = state.order.filter(n => n !== name);
-  state.bench.push(name);
-  buildBatList(); buildBenchList(); buildAddSelect();
-  saveToFirebase('Benched ' + name + ' (can\'t play this week)');
-};
-window.restorePlayer = function(name) {
-  state.bench = state.bench.filter(n => n !== name);
-  state.order.push(name);
-  buildBatList(); buildBenchList(); buildAddSelect();
-  saveToFirebase('Added ' + name + ' back to batting order');
-};
-window.addPlayer = function() {
-  const sel = document.getElementById('add-select');
-  const name = sel.value;
-  if (!name) return;
-  window.restorePlayer(name);
-  sel.value = '';
-};
+window.removePlayer = function(name) { state.order=state.order.filter(n=>n!==name); state.bench.push(name); buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase('Benched '+name); };
+window.restorePlayer = function(name) { state.bench=state.bench.filter(n=>n!==name); state.order.push(name); buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase('Added '+name+' back to batting order'); };
+window.addPlayer = function() { const sel=document.getElementById('add-select'); const name=sel.value; if(!name)return; window.restorePlayer(name); sel.value=''; };
 
-// POSITION EDITOR
-function assignedSet() {
-  const s = new Set();
-  state.positions.forEach(p => { if (p.primary) s.add(p.primary); if (p.backup) s.add(p.backup); });
-  return s;
-}
-function buildOptions(sel) {
-  return '<option value="">— none —</option>' + allNames.map(n =>
-    '<option value="' + n + '"' + (n === sel ? ' selected' : '') + '>' + n + '</option>'
-  ).join('');
-}
-function buildChips() {
-  const assigned = assignedSet();
-  const cg = document.getElementById('chip-grid');
-  const unassigned = allNames.filter(n => !assigned.has(n));
-  cg.innerHTML = unassigned.length
-    ? unassigned.map(n => '<span class="chip">' + n + '</span>').join('')
-    : '<span class="chip">Everyone assigned ✓</span>';
-}
+// POSITIONS
+function assignedSet() { const s=new Set(); state.positions.forEach(p=>{if(p.primary)s.add(p.primary);if(p.backup)s.add(p.backup);}); return s; }
+function buildOptions(sel) { return '<option value="">— none —</option>'+allNames.map(n=>'<option value="'+n+'"'+(n===sel?' selected':'')+'>'+n+'</option>').join(''); }
+function buildChips() { const a=assignedSet(); document.getElementById('chip-grid').innerHTML=allNames.filter(n=>!a.has(n)).map(n=>'<span class="chip">'+n+'</span>').join('')||'<span class="chip">Everyone assigned ✓</span>'; }
 function buildPosGrid() {
-  const grid = document.getElementById('pos-grid');
-  grid.innerHTML = '';
-  state.positions.forEach((pos, i) => {
-    const card = document.createElement('div');
-    card.className = 'pos-card';
-    card.innerHTML = '<div class="pos-card-title">' + pos.label + '</div>' +
-      '<div class="pos-row"><span class="pos-row-label">Primary</span><select onchange="updatePos(' + i + ',\'primary\',this.value,\'' + pos.label + '\')">' + buildOptions(pos.primary) + '</select></div>' +
-      '<div class="pos-row"><span class="pos-row-label">Backup</span><select onchange="updatePos(' + i + ',\'backup\',this.value,\'' + pos.label + '\')">' + buildOptions(pos.backup) + '</select></div>';
+  const grid = document.getElementById('pos-grid'); grid.innerHTML = '';
+  state.positions.forEach((pos,i) => {
+    const card = document.createElement('div'); card.className = 'pos-card';
+    card.innerHTML = '<div class="pos-card-title">'+pos.label+'</div><div class="pos-row"><span class="pos-row-label">Primary</span><select onchange="updatePos('+i+',\'primary\',this.value,\''+pos.label+'\')">'+buildOptions(pos.primary)+'</select></div><div class="pos-row"><span class="pos-row-label">Backup</span><select onchange="updatePos('+i+',\'backup\',this.value,\''+pos.label+'\')">'+buildOptions(pos.backup)+'</select></div>';
     grid.appendChild(card);
   });
   buildChips();
 }
-window.updatePos = function(i, field, value, posLabel) {
-  const old = state.positions[i][field] || 'none';
-  state.positions[i][field] = value;
-  buildChips();
-  updateDiagram();
-  const desc = value
-    ? 'Set ' + value + ' as ' + field + ' at ' + posLabel + ' (was ' + old + ')'
-    : 'Cleared ' + field + ' at ' + posLabel + ' (was ' + old + ')';
-  saveToFirebase(desc);
+window.updatePos = function(i,field,value,posLabel) {
+  const old=state.positions[i][field]||'none'; state.positions[i][field]=value;
+  buildChips(); updateDiagram();
+  saveToFirebase((value?'Set '+value+' as '+field:'Cleared '+field)+' at '+posLabel+' (was '+old+')');
 };
 
-// FIREBASE LISTENERS
-onValue(ref(db, 'roster'), (snapshot) => {
-  if (ignoreNext) { ignoreNext = false; return; }
+// FIREBASE
+onValue(ref(db,'roster'), (snapshot) => {
+  if (ignoreNext) { ignoreNext=false; return; }
   const data = snapshot.val();
-  if (data) {
-    state = data;
-    if (!state.positions || state.positions.length !== defaultState.positions.length) {
-      state.positions = defaultState.positions;
-    }
-  } else {
-    state = JSON.parse(JSON.stringify(defaultState));
-    set(ref(db, 'roster'), state);
-  }
-  setSyncStatus('connected', 'Connected — changes sync in real time');
+  if (data) { state=data; if(!state.positions||state.positions.length!==defaultState.positions.length) state.positions=defaultState.positions; }
+  else { state=JSON.parse(JSON.stringify(defaultState)); set(ref(db,'roster'),state); }
+  setSyncStatus('connected','Connected — changes sync in real time');
   buildBatList(); buildBenchList(); buildAddSelect(); buildPosGrid(); updateDiagram();
-}, () => {
-  setSyncStatus('error', 'Connection error');
-  buildBatList(); buildBenchList(); buildAddSelect(); buildPosGrid(); updateDiagram();
-});
+}, () => { setSyncStatus('error','Connection error'); });
 
-onValue(ref(db, 'history'), (snapshot) => {
-  buildHistoryList(snapshot.val());
-});
+onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 
 checkName();
 </script>
