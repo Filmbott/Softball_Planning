@@ -615,12 +615,12 @@ async function buildSchedule() {
 
   // Try live fetch first, fall back to static data
   try {
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEnn29Z8vE0RxPkFwep4aDEFPTDONRErGySf3Nx23XWblgtll_GkqdLaRroEqD_1jXweUqnc7LW_2-/pub?output=csv&gid=800329934';
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(csvUrl);
+    // Try the mobile/list version of the schedule which has Date,Day,Time,Away,Home columns
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEnn29Z8vE0RxPkFwep4aDEFPTDONRErGySf3Nx23XWblgtll_GkqdLaRroEqD_1jXweUqnc7LW_2-/pub?output=csv&gid=800329934&single=true';
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(csvUrl);
     const resp = await fetch(proxyUrl);
     if (!resp.ok) throw new Error('fetch failed');
-    const json = await resp.json();
-    const text = json.contents;
+    const text = await resp.text();
     if (!text || text.length < 50) throw new Error('empty response');
 
     // Parse CSV robustly
