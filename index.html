@@ -622,78 +622,161 @@ async function buildSchedule() {
     console.log('Schedule: response status:', resp.status);
     if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
     const text = await resp.text();
-    console.log('Schedule: text length:', text.length, 'preview:', text.substring(0,80));
+    console.log('Schedule: text length:', text.length);
     if (!text || text.length < 50) throw new Error('empty response');
 
-    // Parse CSV robustly
+    // Parse CSV — handles quoted fields
     function parseCSV(str) {
-      const rows = [];
-      const lines = str.trim().split('\n');
-      for (const line of lines) {
-        const cols = [];
-        let cur = '', inQ = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
+      return str.trim().split('\n').map(line => {
+        const cols = []; let cur = '', inQ = false;
+        for (const ch of line) {
           if (ch === '"') { inQ = !inQ; }
           else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
           else { cur += ch; }
         }
         cols.push(cur.trim());
-        rows.push(cols);
-      }
-      return rows;
+        return cols;
+      });
     }
 
     const rows = parseCSV(text);
+    console.log('Schedule: parsed', rows.length, 'rows');
 
-    // Find header — look for Date + Away Team columns
-    let hIdx = -1;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-      const r = rows[i].map(c => c.toLowerCase());
-      if (r.some(c => c.includes('date')) && (r.some(c => c.includes('away')) || r.some(c => c.includes('team')))) {
-        hIdx = i; break;
+    // This sheet is a WIDE format: weeks across columns, not rows
+    // Each week block has Mon/Tue/Thu sub-columns
+    // Strategy: scan ALL cells, find date cells, then look at nearby cells for Gospel CC games
+
+    // First find all date strings (e.g. "Monday, June 11, 2026")
+    // and all Gospel CC mentions, extract surrounding context
+    const gccGames = [];
+    let currentDates = {}; // col -> date string
+
+    for (let ri = 0; ri < rows.length; ri++) {
+      const row = rows[ri];
+      // Check if this row contains date headers
+      for (let ci = 0; ci < row.length; ci++) {
+        const cell = row[ci].trim();
+        // Date pattern: contains a month name and year
+        if (/(?:January|February|March|April|May|June|July|August|September|October|November|December).*2026/.test(cell)) {
+          currentDates[ci] = cell;
+        }
+      }
+
+      // Check if this row contains Gospel CC
+      for (let ci = 0; ci < row.length; ci++) {
+        const cell = row[ci].trim();
+        if (cell.toLowerCase().includes('gospel cc') || cell.toLowerCase() === 'gospel cc') {
+          // Found Gospel CC — look for time, opponent, and date context
+          // Time is usually in the cell before or at start of this row chunk
+          // Opponent is usually 2 cells away (time, away, @, home pattern)
+          
+          // Find the time for this game (scan backwards in row)
+          let time = '';
+          for (let tc = ci - 1; tc >= Math.max(0, ci - 3); tc--) {
+            if (/\d+:\d+\s*[AP]M/.test(row[tc])) { time = row[tc]; break; }
+          }
+          if (!time) {
+            // Scan the same row from start
+            for (let tc = 0; tc < row.length; tc++) {
+              if (/\d+:\d+\s*[AP]M/.test(row[tc])) { time = row[tc]; break; }
+            }
+          }
+
+          // Determine if Gospel CC is away or home
+          // Pattern: time, away, @, home — OR — time, home, @, away
+          // Look at surrounding cells
+          let away = '', home = '', opponent = '';
+          const prev1 = (row[ci-1] || '').trim();
+          const prev2 = (row[ci-2] || '').trim();
+          const next1 = (row[ci+1] || '').trim();
+          const next2 = (row[ci+2] || '').trim();
+
+          if (prev1 === '@') {
+            // Gospel CC is home: [away] @ Gospel CC
+            away = (row[ci-2] || '').trim();
+            home = cell;
+          } else if (next1 === '@') {
+            // Gospel CC is away: Gospel CC @ [home]
+            away = cell;
+            home = (row[ci+2] || '').trim();
+          } else if (prev2 === '@') {
+            away = (row[ci-3] || '').trim();
+            home = cell;
+          } else if (next2 === '@') {
+            away = cell;
+            home = (row[ci+3] || '').trim();
+          } else {
+            away = cell; home = '';
+          }
+
+          // Find closest date to this column
+          let closestDate = '';
+          let minDist = Infinity;
+          for (const [dcol, dval] of Object.entries(currentDates)) {
+            const dist = Math.abs(parseInt(dcol) - ci);
+            if (dist < minDist) { minDist = dist; closestDate = dval; }
+          }
+
+          // Parse the date string
+          let dateKey = '';
+          try {
+            const d = new Date(closestDate.replace(/^[A-Za-z]+,\s*/, ''));
+            if (!isNaN(d)) dateKey = d.toISOString().split('T')[0];
+          } catch(e) {}
+
+          // Check for POSTPONED nearby
+          let isPostponed = false;
+          for (let pc = Math.max(0,ci-5); pc < Math.min(row.length, ci+5); pc++) {
+            if ((row[pc]||'').toUpperCase().includes('POSTPONED')) { isPostponed = true; break; }
+          }
+          // Also check adjacent rows
+          for (let pr = Math.max(0,ri-1); pr <= Math.min(rows.length-1,ri+1); pr++) {
+            for (const cell2 of rows[pr]) {
+              if ((cell2||'').toUpperCase().includes('POSTPONED')) { isPostponed = true; break; }
+            }
+          }
+
+          if (dateKey) {
+            gccGames.push({ dateKey, time, away, home, isPostponed });
+            console.log('Found game:', dateKey, time, away, '@', home, isPostponed ? '(postponed)' : '');
+          }
+        }
       }
     }
-    if (hIdx === -1) throw new Error('no header found');
 
-    const hdrs = rows[hIdx].map(h => h.toLowerCase().trim());
-    const dI = hdrs.findIndex(h => h.includes('date'));
-    const dayI = hdrs.findIndex(h => h === 'day' || h.includes('day'));
-    const tI = hdrs.findIndex(h => h.includes('time'));
-    const aI = hdrs.findIndex(h => h.includes('away'));
-    const hI = hdrs.findIndex(h => h.includes('home'));
+    if (gccGames.length === 0) throw new Error('no gcc games found in wide-format CSV');
 
-    if (dI < 0 || aI < 0) throw new Error('missing columns');
-
-    const dataRows = rows.slice(hIdx + 1).filter(r => r[dI] && r[dI].trim().length > 0);
-    const gccRows = dataRows.filter(r => {
-      const a = (r[aI] || '').toLowerCase();
-      const h = hI >= 0 ? (r[hI] || '').toLowerCase() : '';
-      return a.includes('gospel') || h.includes('gospel') ||
-             a.includes('playoff') || a.includes('championship');
+    // Deduplicate by date+time+away+home
+    const seen = new Set();
+    const unique = gccGames.filter(g => {
+      const key = g.dateKey + g.time + g.away + g.home;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
     });
 
-    if (gccRows.length === 0) throw new Error('no gcc rows');
+    // Sort by date then time
+    unique.sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.time.localeCompare(b.time));
 
-    // Build from live data but preserve rescheduled/week/playoff logic from static
-    // Match by date to static data for rescheduled flag
-    const liveData = gccRows.map((r, idx) => {
-      const rawDate = r[dI] || '';
-      const d = new Date(rawDate);
-      const dateKey = !isNaN(d) ? d.toISOString().split('T')[0] : '';
-      const staticMatch = staticSchedule.find(s => s.date === dateKey);
-      const away = r[aI] || '';
-      const home = hI >= 0 ? (r[hI] || '') : '';
-      const isPlayoff = away.toLowerCase().includes('playoff') || away.toLowerCase().includes('championship');
-      const weekNum = staticMatch ? staticMatch.week : (isPlayoff ? 8 : idx + 1);
+    // Match to static schedule for week numbers, day, rescheduled flag
+    let weekCounter = 0;
+    let lastDateKey = '';
+    const liveData = unique.map(g => {
+      const staticMatch = staticSchedule.find(s => s.date === g.dateKey);
+      if (g.dateKey !== lastDateKey) { lastDateKey = g.dateKey; if (staticMatch) weekCounter = staticMatch.week; else weekCounter++; }
+      const isPlayoff = g.away.toLowerCase().includes('playoff') || g.away.toLowerCase().includes('championship');
+      const isRescheduled = staticMatch ? staticMatch.rescheduled : (g.isPostponed || false);
+      const awayDisplay = g.dateKey === '2026-07-27' ? 'Playoffs / Makeup Games' : g.away;
+      // Get day from date
+      const d = new Date(g.dateKey + 'T12:00:00');
+      const dayStr = d.toLocaleDateString('en-US', { weekday: 'long' });
       return {
-        week: weekNum,
-        date: dateKey || rawDate,
-        day: dayI >= 0 ? (r[dayI] || '') : '',
-        time: tI >= 0 ? (r[tI] || '') : '',
-        away: dateKey === '2026-07-27' && away.toLowerCase().includes('playoff') ? 'Playoffs / Makeup Games' : away,
-        home: home,
-        rescheduled: staticMatch ? staticMatch.rescheduled : false
+        week: staticMatch ? staticMatch.week : (isPlayoff ? weekCounter : weekCounter),
+        date: g.dateKey,
+        day: staticMatch ? staticMatch.day : dayStr,
+        time: g.time,
+        away: awayDisplay,
+        home: g.home,
+        rescheduled: isRescheduled
       };
     });
 
