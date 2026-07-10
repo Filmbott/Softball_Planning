@@ -205,6 +205,99 @@
   .modal input:focus { border-color: #378ADD; }
   .modal-btn { width: 100%; padding: 11px; border-radius: 10px; border: none; background: #1a1a1a; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; }
   .modal-btn:hover { background: #333; }
+
+  /* ============ MOBILE RESPONSIVE ============ */
+  @media (max-width: 768px) {
+
+    /* Hide desktop nav links, show hamburger */
+    .nav-links { display: none; }
+    .hamburger {
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 5px; cursor: pointer; padding: 8px; z-index: 60;
+    }
+    .hamburger span {
+      display: block; width: 24px; height: 2px;
+      background: #fff; border-radius: 2px; transition: all 0.3s;
+    }
+
+    /* Mobile menu overlay */
+    .mobile-menu {
+      display: none; position: fixed; top: 64px; left: 0; right: 0;
+      background: rgba(0,0,0,0.92); backdrop-filter: blur(10px);
+      z-index: 49; padding: 16px 0;
+    }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a {
+      display: block; padding: 14px 24px;
+      color: rgba(255,255,255,0.85); font-size: 15px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 500; cursor: pointer; border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a.active { color: #fff; }
+
+    /* Bottom nav bar */
+    .bottom-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+      height: 64px; background: rgba(15,15,15,0.97);
+      backdrop-filter: blur(12px); z-index: 50;
+      border-top: 0.5px solid rgba(255,255,255,0.1);
+    }
+    .bottom-nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; cursor: pointer; color: rgba(255,255,255,0.45);
+      font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
+      font-weight: 600; transition: color 0.15s; padding-bottom: 4px;
+    }
+    .bottom-nav-item.active { color: #fff; }
+    .bottom-nav-item svg { width: 22px; height: 22px; }
+
+    /* Add padding so content doesn't hide behind bottom nav */
+    .app-page { padding-bottom: 80px; padding-top: 76px; }
+
+    /* Hero text scaling — keep on one line */
+    .hero-church {
+      font-size: clamp(12px, 3.2vw, 46px) !important;
+      white-space: nowrap !important;
+    }
+    .hero-softball {
+      font-size: clamp(28px, 9.5vw, 120px) !important;
+      letter-spacing: 0.15em !important;
+    }
+
+    /* Logo smaller on mobile */
+    .nav-logo { height: 80px !important; width: 80px !important; }
+    .nav-logo-wrap { height: 80px !important; width: 80px !important; }
+
+    /* Nav padding adjust for smaller logo */
+    nav { padding: 0 16px 0 100px !important; height: 56px !important; }
+
+    /* Position grid single column */
+    .pos-grid { grid-template-columns: 1fr !important; }
+
+    /* Schedule — hide Day column on mobile */
+    .schedule-table .hide-mobile { display: none; }
+
+    /* Standings table font size */
+    .standings-table { font-size: 12px; }
+    .standings-table td, .standings-table th { padding: 8px 6px; }
+
+    /* Field SVG scrollable */
+    .field-wrap { overflow-x: auto; }
+    #field-svg { min-width: 500px; }
+
+    /* Bat items */
+    .bat-item { padding: 12px 10px; }
+    .bat-name { font-size: 13px; }
+  }
+
+  @media (min-width: 769px) {
+    /* Hide mobile-only elements on desktop */
+    .hamburger { display: none; }
+    .mobile-menu { display: none !important; }
+    .bottom-nav { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -233,7 +326,46 @@
     <li><a onclick="showPage('standings')" id="nav-standings">Standings</a></li>
     <li><a onclick="showPage('history')" id="nav-history">History</a></li>
   </ul>
+  <!-- Hamburger (mobile only) -->
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </div>
 </nav>
+
+<!-- Mobile dropdown menu -->
+<div class="mobile-menu" id="mobile-menu">
+  <a onclick="showPage('home');closeMenu()" id="mnav-home" class="active">Home</a>
+  <a onclick="showPage('batting');closeMenu()" id="mnav-batting">Batting Order</a>
+  <a onclick="showPage('positions');closeMenu()" id="mnav-positions">Position Editor</a>
+  <a onclick="showPage('field');closeMenu()" id="mnav-field">Field Diagram</a>
+  <a onclick="showPage('schedule');closeMenu()" id="mnav-schedule">Schedule</a>
+  <a onclick="showPage('standings');closeMenu()" id="mnav-standings">Standings</a>
+  <a onclick="showPage('history');closeMenu()" id="mnav-history">History</a>
+</div>
+
+<!-- Bottom nav bar (mobile only) -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-item active" id="bnav-home" onclick="showPage('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </div>
+  <div class="bottom-nav-item" id="bnav-batting" onclick="showPage('batting')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Lineup
+  </div>
+  <div class="bottom-nav-item" id="bnav-schedule" onclick="showPage('schedule')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Schedule
+  </div>
+  <div class="bottom-nav-item" id="bnav-standings" onclick="showPage('standings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Standings
+  </div>
+  <div class="bottom-nav-item" id="bnav-more" onclick="toggleMenu()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+    More
+  </div>
+</div>
 
 <!-- HOME -->
 <div id="page-home">
@@ -316,10 +448,10 @@
         <tr>
           <th>Week</th>
           <th>Date</th>
-          <th>Day</th>
+          <th class="hide-mobile">Day</th>
           <th>Time</th>
-          <th>Away</th>
-          <th>Home</th>
+          <th class="hide-mobile">Away</th>
+          <th class="hide-mobile">Home</th>
         </tr>
       </thead>
       <tbody id="schedule-body"></tbody>
@@ -403,13 +535,23 @@ window.showPage = function(page) {
   document.getElementById('page-home').style.display = 'none';
   document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.mobile-menu a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
   if (page === 'home') {
     document.getElementById('page-home').style.display = 'block';
   } else {
     document.getElementById('page-' + page).classList.add('active');
   }
+  // Desktop nav
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
+  // Mobile dropdown nav
+  const mnavEl = document.getElementById('mnav-' + page);
+  if (mnavEl) mnavEl.classList.add('active');
+  // Bottom nav — map pages to bottom nav items
+  const bottomMap = { home: 'home', batting: 'batting', schedule: 'schedule', standings: 'standings', positions: 'more', field: 'more', history: 'more' };
+  const bnavEl = document.getElementById('bnav-' + (bottomMap[page] || 'more'));
+  if (bnavEl) bnavEl.classList.add('active');
 };
 
 // USERNAME
@@ -551,6 +693,24 @@ onValue(ref(db,'roster'), (snapshot) => {
 
 onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 
+// MOBILE MENU
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  menu.classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('mobile-menu');
+  const hamburger = document.getElementById('hamburger');
+  if (menu && hamburger && !menu.contains(e.target) && !hamburger.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
 checkName();
 
 // RESCHEDULED WEEKS — manually flagged (week numbers that are rescheduled)
@@ -609,10 +769,10 @@ async function buildSchedule() {
       return '<tr' + rowClass + '>' +
         '<td>' + weekLabel + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
-        '<td>' + g.day + '</td>' +
+        '<td class="hide-mobile">' + g.day + '</td>' +
         '<td>' + g.time + '</td>' +
-        '<td>' + g.away + '</td>' +
-        '<td>' + (g.home || '—') + '</td>' +
+        '<td class="hide-mobile">' + g.away + '</td>' +
+        '<td class="hide-mobile">' + (g.home || '—') + '</td>' +
         '</tr>';
     }).join('');
     if (wrap) wrap.textContent = 'Last updated: ' + new Date().toLocaleString();
