@@ -121,6 +121,9 @@
   .schedule-table tr.past td { text-decoration: line-through; color: #bbb; }
   .schedule-table tr.rescheduled td { color: #c0392b; }
   .schedule-table tr.rescheduled.past td { text-decoration: line-through; color: #e8a89e; }
+  .schedule-table tr.makeup td { color: #1a6eb5; }
+  .schedule-table tr.makeup.past td { text-decoration: line-through; color: #8ab4d9; }
+  .makeup-note { font-size: 11px; color: #1a6eb5; margin-left: 6px; font-style: italic; }
   .schedule-wrap-inner { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; }
   .week-badge { display: inline-block; font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.04em; min-width: 52px; }
   .reschedule-note { font-size: 11px; color: #c0392b; margin-left: 6px; font-style: italic; }
@@ -240,11 +243,7 @@
       <h1 class="hero-church">Gospel Community Church Eugene</h1>
       <span class="hero-softball">SOFTBALL</span>
     </div>
-    <div class="hero-lower">
-      <div class="hero-divider"></div>
-      <p class="hero-sub">Church League &middot; Summer 2026</p>
-      <button class="hero-btn" onclick="showPage('batting')">Manage Roster</button>
-    </div>
+
   </div>
 </div>
 
@@ -576,6 +575,8 @@ async function buildSchedule() {
     { week: 5,  date: '2026-07-07', day: 'Tuesday',   time: '7:10 PM', away: 'Gospel CC',     home: 'Joy Church #1',   rescheduled: true  },
     { week: 6,  date: '2026-07-16', day: 'Thursday',  time: '6:00 PM', away: 'Gospel CC',     home: 'Northwood #1',    rescheduled: false },
     { week: 7,  date: '2026-07-21', day: 'Tuesday',   time: '7:10 PM', away: 'Joy Church #2', home: 'Gospel CC',       rescheduled: false },
+    { week: 'MU', date: '2026-07-28', day: 'Tuesday',   time: '5:45 PM', away: 'Gospel CC',     home: 'Generations #2',  rescheduled: false, makeup: true },
+    { week: 'MU', date: '2026-07-28', day: 'Tuesday',   time: '7:00 PM', away: 'Gospel CC',     home: 'Joy Church #1',   rescheduled: false, makeup: true },
     { week: 8,  date: '2026-07-27', day: 'Whole week',time: '6:00 PM', away: 'Playoffs / Makeup Games', home: '',     rescheduled: false },
     { week: 8,  date: '2026-07-27', day: 'Whole week',time: '7:10 PM', away: 'Playoffs / Makeup Games', home: '',     rescheduled: false },
     { week: 9,  date: '2026-08-03', day: 'Whole week',time: '6:00 PM', away: 'Playoffs',      home: '',                rescheduled: false },
@@ -591,19 +592,22 @@ async function buildSchedule() {
       const gameDate = new Date(g.date + 'T00:00:00');
       const isPast = gameDate < today;
       const isRescheduled = g.rescheduled;
+      const isMakeup = g.makeup || false;
       let classes = [];
       if (isPast) classes.push('past');
       if (isRescheduled) classes.push('rescheduled');
+      if (isMakeup) classes.push('makeup');
       const rowClass = classes.length ? ' class="' + classes.join(' ') + '"' : '';
       const weekLabel = g.week !== lastWeek
-        ? '<span class="week-badge">Week ' + g.week + '</span>'
+        ? '<span class="week-badge">' + (isMakeup ? 'Makeup' : 'Week ' + g.week) + '</span>'
         : '<span class="week-badge"></span>';
       lastWeek = g.week;
       const rescheduleNote = isRescheduled ? '<span class="reschedule-note">(rescheduled)</span>' : '';
+      const makeupNote = isMakeup ? '<span class="makeup-note">(makeup game)</span>' : '';
       const dateStr = gameDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       return '<tr' + rowClass + '>' +
         '<td>' + weekLabel + '</td>' +
-        '<td>' + dateStr + rescheduleNote + '</td>' +
+        '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
         '<td>' + g.day + '</td>' +
         '<td>' + g.time + '</td>' +
         '<td>' + g.away + '</td>' +
