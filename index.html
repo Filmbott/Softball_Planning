@@ -74,16 +74,16 @@
     text-align: center;
   }
   .hero-church {
-    font-size: clamp(22px, 3vw, 46px); font-weight: 800; color: #fff;
-    letter-spacing: 0.02em; line-height: 1.1;
-    text-shadow: 0 2px 30px rgba(0,0,0,0.8);
-    white-space: nowrap; margin-bottom: 0;
+    font-size: clamp(22px, 3vw, 46px); font-weight: 800; color: #111;
+    letter-spacing: 0.02em; line-height: 1.15;
+    text-shadow: 0 1px 4px rgba(255,255,255,0.3);
+    white-space: normal; margin-bottom: 0; text-align: center;
   }
   .hero-softball {
     display: block;
-    font-size: clamp(50px, 9vw, 120px); font-weight: 900; color: #fff;
+    font-size: clamp(50px, 9vw, 120px); font-weight: 900; color: #111;
     letter-spacing: 0.2em; line-height: 1;
-    text-shadow: 0 2px 30px rgba(0,0,0,0.8);
+    text-shadow: 0 1px 4px rgba(255,255,255,0.3);
     width: 100%; text-align: center; margin-bottom: 16px;
   }
   .hero-divider { width: 60px; height: 2px; background: rgba(255,255,255,0.35); margin: 0 auto 18px; }
@@ -258,12 +258,13 @@
 
     /* Hero text scaling — keep on one line */
     .hero-church {
-      font-size: clamp(12px, 3.2vw, 46px) !important;
-      white-space: nowrap !important;
+      font-size: clamp(18px, 5.5vw, 46px) !important;
+      white-space: normal !important;
+      line-height: 1.2 !important;
     }
     .hero-softball {
-      font-size: clamp(28px, 9.5vw, 120px) !important;
-      letter-spacing: 0.15em !important;
+      font-size: clamp(36px, 11vw, 120px) !important;
+      letter-spacing: 0.12em !important;
     }
 
     /* Logo smaller on mobile */
@@ -327,7 +328,7 @@
     <li><a onclick="showPage('history')" id="nav-history">History</a></li>
   </ul>
   <!-- Hamburger (mobile only) -->
-  <div class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Open menu">
+  <div class="hamburger" id="hamburger" onclick="window.toggleMenu()" aria-label="Open menu">
     <span></span><span></span><span></span>
   </div>
 </nav>
@@ -361,7 +362,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     Standings
   </div>
-  <div class="bottom-nav-item" id="bnav-more" onclick="toggleMenu()">
+  <div class="bottom-nav-item" id="bnav-more" onclick="window.toggleMenu()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
     More
   </div>
@@ -373,7 +374,7 @@
     <div class="hero-bg"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <h1 class="hero-church">Gospel Community Church Eugene</h1>
+      <h1 class="hero-church">Gospel Community<br>Church Eugene</h1>
       <span class="hero-softball">SOFTBALL</span>
     </div>
 
@@ -694,13 +695,14 @@ onValue(ref(db,'roster'), (snapshot) => {
 onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 
 // MOBILE MENU
-function toggleMenu() {
+window.toggleMenu = function() {
   const menu = document.getElementById('mobile-menu');
-  menu.classList.toggle('open');
-}
-function closeMenu() {
-  document.getElementById('mobile-menu').classList.remove('open');
-}
+  if (menu) menu.classList.toggle('open');
+};
+window.closeMenu = function() {
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.remove('open');
+};
 
 // Close menu when clicking outside
 document.addEventListener('click', function(e) {
