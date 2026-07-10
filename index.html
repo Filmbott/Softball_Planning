@@ -220,11 +220,11 @@
       background: #fff; border-radius: 2px; transition: all 0.3s;
     }
 
-    /* Mobile menu overlay */
+    /* Mobile menu — hamburger opens from top */
     .mobile-menu {
-      display: none; position: fixed; top: 64px; left: 0; right: 0;
-      background: rgba(0,0,0,0.92); backdrop-filter: blur(10px);
-      z-index: 49; padding: 16px 0;
+      display: none; position: fixed; top: 56px; left: 0; right: 0;
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
+      z-index: 49; padding: 8px 0;
     }
     .mobile-menu.open { display: block; }
     .mobile-menu a {
@@ -235,6 +235,31 @@
     }
     .mobile-menu a:last-child { border-bottom: none; }
     .mobile-menu a.active { color: #fff; }
+
+    /* More menu — slides up from bottom nav */
+    .more-menu {
+      display: none; position: fixed; bottom: 64px; left: 0; right: 0;
+      background: rgba(15,15,15,0.97); backdrop-filter: blur(12px);
+      z-index: 49; padding: 8px 0;
+      border-top: 0.5px solid rgba(255,255,255,0.1);
+      border-radius: 16px 16px 0 0;
+    }
+    .more-menu.open { display: block; }
+    .more-menu a {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 24px;
+      color: rgba(255,255,255,0.85); font-size: 15px;
+      letter-spacing: 0.04em;
+      font-weight: 500; cursor: pointer;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    }
+    .more-menu a:last-child { border-bottom: none; }
+    .more-menu a.active { color: #fff; }
+    .more-menu-title {
+      padding: 12px 24px 8px;
+      font-size: 11px; color: rgba(255,255,255,0.4);
+      text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+    }
 
     /* Bottom nav bar */
     .bottom-nav {
@@ -333,7 +358,7 @@
   </div>
 </nav>
 
-<!-- Mobile dropdown menu -->
+<!-- Mobile dropdown menu (hamburger) -->
 <div class="mobile-menu" id="mobile-menu">
   <a onclick="showPage('home');closeMenu()" id="mnav-home" class="active">Home</a>
   <a onclick="showPage('batting');closeMenu()" id="mnav-batting">Batting Order</a>
@@ -342,6 +367,23 @@
   <a onclick="showPage('schedule');closeMenu()" id="mnav-schedule">Schedule</a>
   <a onclick="showPage('standings');closeMenu()" id="mnav-standings">Standings</a>
   <a onclick="showPage('history');closeMenu()" id="mnav-history">History</a>
+</div>
+
+<!-- More menu (slides up from bottom nav) -->
+<div class="more-menu" id="more-menu">
+  <div class="more-menu-title">More</div>
+  <a onclick="showPage('positions');closeMoreMenu()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Position Editor
+  </a>
+  <a onclick="showPage('field');closeMoreMenu()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    Field Diagram
+  </a>
+  <a onclick="showPage('history');closeMoreMenu()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    History
+  </a>
 </div>
 
 <!-- Bottom nav bar (mobile only) -->
@@ -362,7 +404,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     Standings
   </div>
-  <div class="bottom-nav-item" id="bnav-more" onclick="window.toggleMenu()">
+  <div class="bottom-nav-item" id="bnav-more" onclick="window.toggleMoreMenu()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
     More
   </div>
@@ -697,19 +739,36 @@ onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 // MOBILE MENU
 window.toggleMenu = function() {
   const menu = document.getElementById('mobile-menu');
+  const more = document.getElementById('more-menu');
+  if (more) more.classList.remove('open');
   if (menu) menu.classList.toggle('open');
 };
 window.closeMenu = function() {
   const menu = document.getElementById('mobile-menu');
   if (menu) menu.classList.remove('open');
 };
+window.toggleMoreMenu = function() {
+  const more = document.getElementById('more-menu');
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.remove('open');
+  if (more) more.classList.toggle('open');
+};
+window.closeMoreMenu = function() {
+  const more = document.getElementById('more-menu');
+  if (more) more.classList.remove('open');
+};
 
-// Close menu when clicking outside
+// Close menus when clicking outside
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('mobile-menu');
   const hamburger = document.getElementById('hamburger');
+  const more = document.getElementById('more-menu');
+  const moreBtn = document.getElementById('bnav-more');
   if (menu && hamburger && !menu.contains(e.target) && !hamburger.contains(e.target)) {
     menu.classList.remove('open');
+  }
+  if (more && moreBtn && !more.contains(e.target) && !moreBtn.contains(e.target)) {
+    more.classList.remove('open');
   }
 });
 
