@@ -567,6 +567,53 @@ async function buildSchedule() {
   // Show loading
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px">Loading schedule...</td></tr>';
 
+  // Static fallback schedule data — always accurate, updates when you push new code
+  const staticSchedule = [
+    { week: 1,  date: '2026-06-11', day: 'Thursday',  time: '7:10 PM', away: 'Gospel CC',     home: 'First Baptist',   rescheduled: false },
+    { week: 2,  date: '2026-06-18', day: 'Thursday',  time: '6:00 PM', away: 'Gospel CC',     home: 'Generations #2',  rescheduled: true  },
+    { week: 3,  date: '2026-06-25', day: 'Thursday',  time: '7:10 PM', away: 'Northwood #2',  home: 'Gospel CC',       rescheduled: false },
+    { week: 4,  date: '2026-06-30', day: 'Tuesday',   time: '6:00 PM', away: 'CFC #2',        home: 'Gospel CC',       rescheduled: false },
+    { week: 5,  date: '2026-07-07', day: 'Tuesday',   time: '7:10 PM', away: 'Gospel CC',     home: 'Joy Church #1',   rescheduled: true  },
+    { week: 6,  date: '2026-07-16', day: 'Thursday',  time: '6:00 PM', away: 'Gospel CC',     home: 'Northwood #1',    rescheduled: false },
+    { week: 7,  date: '2026-07-21', day: 'Tuesday',   time: '7:10 PM', away: 'Joy Church #2', home: 'Gospel CC',       rescheduled: false },
+    { week: 8,  date: '2026-07-27', day: 'Whole week',time: '6:00 PM', away: 'Playoffs / Makeup Games', home: '',     rescheduled: false },
+    { week: 8,  date: '2026-07-27', day: 'Whole week',time: '7:10 PM', away: 'Playoffs / Makeup Games', home: '',     rescheduled: false },
+    { week: 9,  date: '2026-08-03', day: 'Whole week',time: '6:00 PM', away: 'Playoffs',      home: '',                rescheduled: false },
+    { week: 9,  date: '2026-08-03', day: 'Whole week',time: '7:10 PM', away: 'Playoffs',      home: '',                rescheduled: false },
+    { week: 10, date: '2026-08-10', day: 'Whole week',time: '6:15 PM', away: 'Playoffs',      home: '',                rescheduled: false },
+    { week: 11, date: '2026-08-17', day: 'Monday',    time: '6:15 PM', away: 'Championship',  home: '',                rescheduled: false },
+  ];
+
+  function renderSchedule(data) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    let lastWeek = null;
+    tbody.innerHTML = data.map(g => {
+      const gameDate = new Date(g.date + 'T00:00:00');
+      const isPast = gameDate < today;
+      const isRescheduled = g.rescheduled;
+      let classes = [];
+      if (isPast) classes.push('past');
+      if (isRescheduled) classes.push('rescheduled');
+      const rowClass = classes.length ? ' class="' + classes.join(' ') + '"' : '';
+      const weekLabel = g.week !== lastWeek
+        ? '<span class="week-badge">Week ' + g.week + '</span>'
+        : '<span class="week-badge"></span>';
+      lastWeek = g.week;
+      const rescheduleNote = isRescheduled ? '<span class="reschedule-note">(rescheduled)</span>' : '';
+      const dateStr = gameDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      return '<tr' + rowClass + '>' +
+        '<td>' + weekLabel + '</td>' +
+        '<td>' + dateStr + rescheduleNote + '</td>' +
+        '<td>' + g.day + '</td>' +
+        '<td>' + g.time + '</td>' +
+        '<td>' + g.away + '</td>' +
+        '<td>' + (g.home || '—') + '</td>' +
+        '</tr>';
+    }).join('');
+    if (wrap) wrap.textContent = 'Last updated: ' + new Date().toLocaleString();
+  }
+
+  // Try live fetch first, fall back to static data
   try {
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEnn29Z8vE0RxPkFwep4aDEFPTDONRErGySf3Nx23XWblgtll_GkqdLaRroEqD_1jXweUqnc7LW_2-/pub?output=csv&gid=800329934';
     const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(csvUrl);
@@ -574,136 +621,87 @@ async function buildSchedule() {
     if (!resp.ok) throw new Error('fetch failed');
     const json = await resp.json();
     const text = json.contents;
+    if (!text || text.length < 50) throw new Error('empty response');
 
-    // Parse CSV
-    const rows = text.trim().split('\n').map(r => {
-      const result = [];
-      let inQuote = false, cur = '';
-      for (let ch of r) {
-        if (ch === '"') { inQuote = !inQuote; }
-        else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
-        else { cur += ch; }
+    // Parse CSV robustly
+    function parseCSV(str) {
+      const rows = [];
+      const lines = str.trim().split('\n');
+      for (const line of lines) {
+        const cols = [];
+        let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+          else { cur += ch; }
+        }
+        cols.push(cur.trim());
+        rows.push(cols);
       }
-      result.push(cur.trim());
-      return result;
-    });
-
-    // Find header row
-    let headerIdx = -1;
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i].map(c => c.toLowerCase());
-      if (row.some(c => c.includes('date')) && row.some(c => c.includes('away'))) {
-        headerIdx = i; break;
-      }
+      return rows;
     }
 
-    if (headerIdx === -1) throw new Error('no header');
+    const rows = parseCSV(text);
 
-    const headers = rows[headerIdx].map(h => h.toLowerCase().trim());
-    const dateI  = headers.findIndex(h => h.includes('date'));
-    const dayI   = headers.findIndex(h => h.includes('day'));
-    const timeI  = headers.findIndex(h => h.includes('time'));
-    const awayI  = headers.findIndex(h => h.includes('away'));
-    const homeI  = headers.findIndex(h => h.includes('home'));
+    // Find header — look for Date + Away Team columns
+    let hIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const r = rows[i].map(c => c.toLowerCase());
+      if (r.some(c => c.includes('date')) && (r.some(c => c.includes('away')) || r.some(c => c.includes('team')))) {
+        hIdx = i; break;
+      }
+    }
+    if (hIdx === -1) throw new Error('no header found');
 
-    const dataRows = rows.slice(headerIdx + 1).filter(r => r[dateI] && r[dateI].trim());
+    const hdrs = rows[hIdx].map(h => h.toLowerCase().trim());
+    const dI = hdrs.findIndex(h => h.includes('date'));
+    const dayI = hdrs.findIndex(h => h === 'day' || h.includes('day'));
+    const tI = hdrs.findIndex(h => h.includes('time'));
+    const aI = hdrs.findIndex(h => h.includes('away'));
+    const hI = hdrs.findIndex(h => h.includes('home'));
 
-    const today = new Date(); today.setHours(0,0,0,0);
-    const playoffsStart = new Date(playoffsStartDate + 'T00:00:00');
+    if (dI < 0 || aI < 0) throw new Error('missing columns');
 
-    // Filter to Gospel CC games only (plus playoffs/championship)
+    const dataRows = rows.slice(hIdx + 1).filter(r => r[dI] && r[dI].trim().length > 0);
     const gccRows = dataRows.filter(r => {
-      const away = (r[awayI] || '').toLowerCase();
-      const home = (r[homeI] || '').toLowerCase();
-      const isPlayoffs = away.includes('playoff') || away.includes('championship') ||
-                         home.includes('playoff') || home.includes('championship');
-      return away.includes('gospel') || home.includes('gospel') || isPlayoffs;
+      const a = (r[aI] || '').toLowerCase();
+      const h = hI >= 0 ? (r[hI] || '').toLowerCase() : '';
+      return a.includes('gospel') || h.includes('gospel') ||
+             a.includes('playoff') || a.includes('championship');
     });
 
-    // Assign week numbers
-    let weekNum = 0;
-    let lastDateStr = '';
-    let playoffWeekNum = null;
+    if (gccRows.length === 0) throw new Error('no gcc rows');
 
-    const today2 = new Date(); today2.setHours(0,0,0,0);
+    // Build from live data but preserve rescheduled/week/playoff logic from static
+    // Match by date to static data for rescheduled flag
+    const liveData = gccRows.map((r, idx) => {
+      const rawDate = r[dI] || '';
+      const d = new Date(rawDate);
+      const dateKey = !isNaN(d) ? d.toISOString().split('T')[0] : '';
+      const staticMatch = staticSchedule.find(s => s.date === dateKey);
+      const away = r[aI] || '';
+      const home = hI >= 0 ? (r[hI] || '') : '';
+      const isPlayoff = away.toLowerCase().includes('playoff') || away.toLowerCase().includes('championship');
+      const weekNum = staticMatch ? staticMatch.week : (isPlayoff ? 8 : idx + 1);
+      return {
+        week: weekNum,
+        date: dateKey || rawDate,
+        day: dayI >= 0 ? (r[dayI] || '') : '',
+        time: tI >= 0 ? (r[tI] || '') : '',
+        away: dateKey === '2026-07-27' && away.toLowerCase().includes('playoff') ? 'Playoffs / Makeup Games' : away,
+        home: home,
+        rescheduled: staticMatch ? staticMatch.rescheduled : false
+      };
+    });
 
-    let html = gccRows.map(r => {
-      const rawDate = r[dateI] || '';
-      const day     = r[dayI]  || '';
-      const time    = r[timeI] || '';
-      const away    = r[awayI] || '';
-      const home    = r[homeI] || '';
-
-      // Parse date — try to handle various formats
-      let gameDate = null;
-      try {
-        const d = new Date(rawDate);
-        if (!isNaN(d)) gameDate = d;
-      } catch(e) {}
-
-      // Week number — increment on new date
-      if (rawDate !== lastDateStr) {
-        lastDateStr = rawDate;
-        const isPlayoffs = away.toLowerCase().includes('playoff') ||
-                           home.toLowerCase().includes('playoff') ||
-                           away.toLowerCase().includes('championship');
-        if (!isPlayoffs) {
-          weekNum++;
-        } else {
-          if (playoffWeekNum === null) playoffWeekNum = weekNum + 1;
-        }
-      }
-
-      const isPlayoff = away.toLowerCase().includes('playoff') ||
-                        home.toLowerCase().includes('playoff') ||
-                        away.toLowerCase().includes('championship');
-      const currentWeek = isPlayoff ? '' : weekNum;
-
-      const isPast = gameDate && gameDate < today2;
-      const isRescheduled = rescheduledWeeks.includes(currentWeek);
-
-      // Label first playoff week
-      let awayDisplay = away;
-      if (away.toLowerCase().includes('playoff') && gameDate) {
-        const gd = new Date(gameDate); gd.setHours(0,0,0,0);
-        if (gd.getTime() === playoffsStart.getTime()) {
-          awayDisplay = 'Playoffs / Makeup Games';
-        }
-      }
-
-      let classes = [];
-      if (isPast) classes.push('past');
-      if (isRescheduled) classes.push('rescheduled');
-      const rowClass = classes.length ? ' class="' + classes.join(' ') + '"' : '';
-
-      const weekLabel = currentWeek
-        ? '<span class="week-badge">Week ' + currentWeek + '</span>'
-        : '<span class="week-badge" style="color:#bbb">Playoffs</span>';
-
-      const rescheduleNote = isRescheduled
-        ? '<span class="reschedule-note">(rescheduled)</span>'
-        : '';
-
-      let dateDisplay = rawDate;
-      if (gameDate) {
-        dateDisplay = gameDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      }
-
-      return '<tr' + rowClass + '>' +
-        '<td>' + weekLabel + '</td>' +
-        '<td>' + dateDisplay + rescheduleNote + '</td>' +
-        '<td>' + day + '</td>' +
-        '<td>' + time + '</td>' +
-        '<td>' + away + '</td>' +
-        '<td>' + (home || '—') + '</td>' +
-        '</tr>';
-    }).join('');
-
-    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px">No Gospel CC games found.</td></tr>';
-    if (wrap) wrap.textContent = 'Last updated: ' + new Date().toLocaleString();
+    renderSchedule(liveData);
+    if (wrap) wrap.textContent = 'Live from league schedule · Last loaded: ' + new Date().toLocaleString();
 
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px">Unable to load schedule. <a href="https://www.eugenechurchsoftball.com/Schedule" target="_blank">View on league site →</a></td></tr>';
+    // Fall back to static data — always correct, just not auto-updating
+    renderSchedule(staticSchedule);
+    if (wrap) wrap.textContent = 'Showing saved schedule (live fetch unavailable)';
   }
 }
 
