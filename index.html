@@ -616,11 +616,13 @@ async function buildSchedule() {
   // Try live fetch first, fall back to static data
   try {
     // Try the mobile/list version of the schedule which has Date,Day,Time,Away,Home columns
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEnn29Z8vE0RxPkFwep4aDEFPTDONRErGySf3Nx23XWblgtll_GkqdLaRroEqD_1jXweUqnc7LW_2-/pub?output=csv&gid=800329934&single=true';
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(csvUrl);
+    console.log('Schedule: attempting live fetch via Vercel proxy...');
+    const proxyUrl = '/api/schedule?gid=800329934';
     const resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error('fetch failed');
+    console.log('Schedule: response status:', resp.status);
+    if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
     const text = await resp.text();
+    console.log('Schedule: text length:', text.length, 'preview:', text.substring(0,80));
     if (!text || text.length < 50) throw new Error('empty response');
 
     // Parse CSV robustly
@@ -699,9 +701,10 @@ async function buildSchedule() {
     if (wrap) wrap.textContent = 'Live from league schedule · Last loaded: ' + new Date().toLocaleString();
 
   } catch(err) {
+    console.log('Schedule fetch failed:', err.message);
     // Fall back to static data — always correct, just not auto-updating
     renderSchedule(staticSchedule);
-    if (wrap) wrap.textContent = 'Showing saved schedule (live fetch unavailable)';
+    if (wrap) wrap.textContent = 'Showing saved schedule (live fetch unavailable) · Error: ' + err.message;
   }
 }
 
@@ -715,11 +718,13 @@ async function loadStandings() {
   const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEnn29Z8vE0RxPkFwep4aDEFPTDONRErGySf3Nx23XWblgtll_GkqdLaRroEqD_1jXweUqnc7LW_2-/pub?output=csv&gid=332134412';
   
   try {
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(csvUrl);
+    console.log('Standings: attempting live fetch via Vercel proxy...');
+    const proxyUrl = '/api/schedule?gid=332134412';
     const resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error('fetch failed');
-    const json = await resp.json();
-    const text = json.contents;
+    console.log('Standings: proxy response status:', resp.status);
+    if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
+    const text = await resp.text();
+    console.log('Standings: got text, length:', text.length);
     const rows = text.trim().split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
     
     // Find header row (look for row containing "Team" and "W")
