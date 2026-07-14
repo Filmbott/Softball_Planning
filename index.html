@@ -221,6 +221,35 @@
   .roster-number { width: 36px; height: 36px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
   .roster-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
   .roster-pos { font-size: 12px; color: #888; margin-top: 1px; }
+  .roster-edit-btn { margin-left: auto; background: none; border: none; cursor: pointer; color: #bbb; padding: 6px; border-radius: 6px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+  .roster-edit-btn:hover { color: #378ADD; background: #f0f0ee; }
+  .roster-edit-btn svg { width: 16px; height: 16px; }
+  .roster-add-row { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+  .roster-add-btn { font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-family: inherit; }
+  .roster-add-btn:hover { background: #f0f0ee; }
+
+  /* Roster edit modal */
+  .redit-modal { max-width: 380px; max-height: 86vh; overflow-y: auto; }
+  .redit-field { margin-bottom: 14px; }
+  .redit-field label { display: block; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .redit-field input, .redit-field select { width: 100%; font-size: 15px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; outline: none; font-family: inherit; background: #fff; }
+  .redit-field input:focus, .redit-field select:focus { border-color: #378ADD; }
+  .redit-row { display: flex; gap: 10px; }
+  .redit-row .redit-field { flex: 1; }
+  .redit-skills-title { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.04em; margin: 6px 0 10px; padding-top: 10px; border-top: 1px solid #eee; }
+  .redit-skill-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .redit-skill-row span { font-size: 13px; color: #444; }
+  .redit-skill-picker { display: flex; gap: 6px; }
+  .redit-skill-opt { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #ddd; background: #fafafa; font-size: 13px; font-weight: 700; color: #999; cursor: pointer; font-family: inherit; }
+  .redit-skill-opt.sel-1.active { background: #fcebeb; color: #A32D2D; border-color: #f3b7b7; }
+  .redit-skill-opt.sel-2.active { background: #faeeda; color: #854F0B; border-color: #edcf9c; }
+  .redit-skill-opt.sel-3.active { background: #eaf3de; color: #3B6D11; border-color: #c3dba3; }
+  .redit-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .redit-actions .modal-btn { flex: 1; }
+  .redit-delete-btn { width: 100%; margin-top: 10px; padding: 11px; border-radius: 10px; border: 1px solid #f3b7b7; background: #fff; color: #A32D2D; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .redit-delete-btn:hover { background: #fcebeb; }
+  .redit-cancel-btn { background: #f0f0ee !important; color: #444 !important; }
+  .redit-cancel-btn:hover { background: #e5e5e2 !important; }
   .skill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .skill-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .skill-label { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
@@ -355,6 +384,38 @@
     <p>So we can track who makes changes to the roster.</p>
     <input type="text" id="name-input" placeholder="e.g. Joel" maxlength="30"/>
     <button class="modal-btn" onclick="saveName()">Let's go</button>
+  </div>
+</div>
+
+<!-- Roster edit/add modal -->
+<div class="modal-overlay" id="roster-edit-modal" style="display:none">
+  <div class="modal redit-modal">
+    <h2 id="redit-title">Edit Player</h2>
+    <div class="redit-row">
+      <div class="redit-field" style="flex:2">
+        <label>Name</label>
+        <input type="text" id="redit-name" placeholder="e.g. Joel Bauer" maxlength="40"/>
+      </div>
+      <div class="redit-field" style="flex:1">
+        <label>Number</label>
+        <input type="number" id="redit-num" placeholder="#" min="0" max="99"/>
+      </div>
+    </div>
+    <div class="redit-field">
+      <label>Primary Position</label>
+      <select id="redit-pos"></select>
+    </div>
+    <div class="redit-field">
+      <label>Secondary Position</label>
+      <select id="redit-pos2"></select>
+    </div>
+    <div class="redit-skills-title">Skill ratings (1&ndash;3)</div>
+    <div id="redit-skills"></div>
+    <div class="redit-actions">
+      <button class="modal-btn redit-cancel-btn" onclick="closeRosterEditModal()">Cancel</button>
+      <button class="modal-btn" onclick="saveRosterEdit()">Save</button>
+    </div>
+    <button class="redit-delete-btn" id="redit-delete-btn" onclick="deleteRosterPlayer()">Delete player</button>
   </div>
 </div>
 
@@ -512,6 +573,7 @@
   <br/>
   <p class="note">Full team roster with skill ratings (1 = developing · 2 = average · 3 = strong). Used as reference for batting order and position assignments.</p>
   <br/>
+  <div class="roster-add-row"><button class="roster-add-btn" onclick="openRosterAddModal()">+ Add Player</button></div>
   <div class="roster-grid" id="roster-grid"></div>
 </div>
 
@@ -767,47 +829,64 @@ onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 
 
 
-// ROSTER DATA
-const rosterData = [
-  { name: "Adam Wilson",      num: 32, pos: "Pitcher",       cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
-  { name: "Caleb Smith",      num: 10, pos: "Left Center",   cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  { name: "Cade Kyle",        num: 42, pos: "Right Center",  cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
-  { name: "Carson Wynn",      num: 12, pos: "Catcher",       cat: 2, thr: 2, ob: 1, pow: 2, run: 2 },
-  { name: "Chad Reeves",      num: 3,  pos: "2nd Base",      cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
-  { name: "Connor Thompson",  num: 11, pos: "1st Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  { name: "Cory Burket",      num: 1,  pos: "Pitcher",       cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
-  { name: "Jared Macedo",     num: 8,  pos: "Shortstop",     cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
-  { name: "Jesse Turk",       num: 35, pos: "3rd Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  { name: "Jesse Williams",   num: 6,  pos: "3rd Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  { name: "Joel Bauer",       num: 22, pos: "Left Center",   cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
-  { name: "Josh Gershom",     num: 17, pos: "Right Field",   cat: 1, thr: 2, ob: 1, pow: 1, run: 2 },
-  { name: "Mark Felderman",   num: 18, pos: "Left Field",    cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
-  { name: "Nate Newell",      num: 24, pos: "2nd Base",      cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
-  { name: "Nick Keith",       num: 76, pos: "Right Center",  cat: 2, thr: 3, ob: 3, pow: 3, run: 2 },
-  { name: "Parker Wynn",      num: 34, pos: "Outfield",      cat: 1, thr: 1, ob: 1, pow: 2, run: 1 },
-  { name: "Rick Reeves",      num: 33, pos: "Left Field",    cat: 2, thr: 3, ob: 3, pow: 3, run: 3 },
-  { name: "Zach Blalack",     num: 13, pos: "Catcher",       cat: 1, thr: 1, ob: 1, pow: 1, run: 1 },
+// ROSTER DATA — seed values, used only the very first time /roster-players is empty in Firebase.
+// After that, the roster lives in Firebase at 'rosterPlayers' and syncs in real time.
+const defaultRosterPlayers = {
+  "adam-wilson":     { name: "Adam Wilson",     num: 32, pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
+  "caleb-smith":      { name: "Caleb Smith",     num: 10, pos: "Left Center",   pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "cade-kyle":        { name: "Cade Kyle",       num: 42, pos: "Right Center",  pos2: "",              cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
+  "carson-wynn":      { name: "Carson Wynn",     num: 12, pos: "Catcher",       pos2: "",              cat: 2, thr: 2, ob: 1, pow: 2, run: 2 },
+  "chad-reeves":      { name: "Chad Reeves",     num: 3,  pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  "connor-thompson":  { name: "Connor Thompson", num: 11, pos: "1st Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "cory-burket":      { name: "Cory Burket",     num: 1,  pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  "jared-macedo":     { name: "Jared Macedo",    num: 8,  pos: "Shortstop",     pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  "jesse-turk":       { name: "Jesse Turk",      num: 35, pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "jesse-williams":   { name: "Jesse Williams",  num: 6,  pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "joel-bauer":       { name: "Joel Bauer",      num: 22, pos: "Left Center",   pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  "josh-gershom":     { name: "Josh Gershom",    num: 17, pos: "Right Field",   pos2: "",              cat: 1, thr: 2, ob: 1, pow: 1, run: 2 },
+  "mark-felderman":   { name: "Mark Felderman",  num: 18, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  "nate-newell":      { name: "Nate Newell",     num: 24, pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  "nick-keith":       { name: "Nick Keith",      num: 76, pos: "Right Center",  pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 2 },
+  "parker-wynn":      { name: "Parker Wynn",     num: 34, pos: "Outfield",      pos2: "",              cat: 1, thr: 1, ob: 1, pow: 2, run: 1 },
+  "rick-reeves":      { name: "Rick Reeves",     num: 33, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 3 },
+  "zach-blalack":     { name: "Zach Blalack",    num: 13, pos: "Catcher",       pos2: "",              cat: 1, thr: 1, ob: 1, pow: 1, run: 1 },
+};
+
+const ROSTER_POSITIONS = ["Pitcher","Catcher","1st Base","2nd Base","Shortstop","3rd Base","Left Field","Left Center","Right Center","Right Field","Outfield","Utility"];
+const ROSTER_SKILLS = [
+  { key: "cat", label: "Catch" },
+  { key: "thr", label: "Throw" },
+  { key: "ob",  label: "On Base" },
+  { key: "pow", label: "Power" },
+  { key: "run", label: "Speed" }
 ];
+
+let rosterPlayers = {};       // live Firebase-synced roster, keyed by player id
+let ignoreNextRoster = false;
+let rosterEditId = null;      // id of player currently being edited; null = "add new"
+
+function rosterKeyFor(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || ('player-' + Date.now());
+}
 
 function buildRoster() {
   const grid = document.getElementById('roster-grid');
   if (!grid) return;
-  const sorted = [...rosterData].sort((a,b) => a.name.localeCompare(b.name));
-  grid.innerHTML = sorted.map(p => {
+  const entries = Object.entries(rosterPlayers).sort((a,b) => a[1].name.localeCompare(b[1].name));
+  if (!entries.length) { grid.innerHTML = '<p style="color:#888;font-size:13px;text-align:center;padding:30px 0">No players yet. Add one above.</p>'; return; }
+  function sc(v) { return v === 3 ? 'skill-3' : v === 2 ? 'skill-2' : 'skill-1'; }
+  grid.innerHTML = entries.map(([id, p]) => {
     const overall = p.cat + p.thr + p.ob + p.pow + p.run;
     const pct = Math.round((overall / 15) * 100);
-    function sc(v) { return v === 3 ? 'skill-3' : v === 2 ? 'skill-2' : 'skill-1'; }
+    const posLabel = p.pos + (p.pos2 ? ' / ' + p.pos2 : '');
     return '<div class="roster-card">' +
       '<div class="roster-card-header">' +
         '<div class="roster-number">#' + p.num + '</div>' +
-        '<div><div class="roster-name">' + p.name + '</div><div class="roster-pos">' + p.pos + '</div></div>' +
+        '<div><div class="roster-name">' + p.name + '</div><div class="roster-pos">' + posLabel + '</div></div>' +
+        '<button class="roster-edit-btn" onclick="openRosterEditModal(\'' + id + '\')" aria-label="Edit player"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
       '</div>' +
       '<div class="skill-grid">' +
-        '<div class="skill-cell"><div class="skill-label">Catch</div><div class="skill-val ' + sc(p.cat) + '">' + p.cat + '</div></div>' +
-        '<div class="skill-cell"><div class="skill-label">Throw</div><div class="skill-val ' + sc(p.thr) + '">' + p.thr + '</div></div>' +
-        '<div class="skill-cell"><div class="skill-label">On Base</div><div class="skill-val ' + sc(p.ob) + '">' + p.ob + '</div></div>' +
-        '<div class="skill-cell"><div class="skill-label">Power</div><div class="skill-val ' + sc(p.pow) + '">' + p.pow + '</div></div>' +
-        '<div class="skill-cell"><div class="skill-label">Speed</div><div class="skill-val ' + sc(p.run) + '">' + p.run + '</div></div>' +
+        ROSTER_SKILLS.map(s => '<div class="skill-cell"><div class="skill-label">' + s.label + '</div><div class="skill-val ' + sc(p[s.key]) + '">' + p[s.key] + '</div></div>').join('') +
       '</div>' +
       '<div class="overall-bar">' +
         '<span class="overall-label">Overall ' + overall + '/15</span>' +
@@ -816,6 +895,107 @@ function buildRoster() {
     '</div>';
   }).join('');
 }
+
+function saveRosterPlayers(desc) {
+  ignoreNextRoster = true;
+  set(ref(db, 'rosterPlayers'), rosterPlayers)
+    .then(() => { if (desc) logChange(desc); })
+    .catch(() => { console.log('Roster save failed'); });
+}
+
+function populateRosterSelects(selectedPos, selectedPos2) {
+  const posSel = document.getElementById('redit-pos');
+  const pos2Sel = document.getElementById('redit-pos2');
+  posSel.innerHTML = ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos?' selected':'')+'>'+p+'</option>').join('');
+  pos2Sel.innerHTML = '<option value="">&mdash; none &mdash;</option>' + ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos2?' selected':'')+'>'+p+'</option>').join('');
+}
+
+function populateRosterSkills(player) {
+  const wrap = document.getElementById('redit-skills');
+  wrap.innerHTML = ROSTER_SKILLS.map(s => {
+    const val = player ? player[s.key] : 2;
+    return '<div class="redit-skill-row"><span>' + s.label + '</span><div class="redit-skill-picker" data-skill="' + s.key + '">' +
+      [1,2,3].map(v => '<button type="button" class="redit-skill-opt sel-' + v + (v===val?' active':'') + '" onclick="setRosterSkill(\''+s.key+'\','+v+',this)">' + v + '</button>').join('') +
+    '</div></div>';
+  }).join('');
+}
+window.setRosterSkill = function(key, val, btn) {
+  const picker = btn.closest('.redit-skill-picker');
+  picker.querySelectorAll('.redit-skill-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  picker.dataset.value = val;
+};
+function getRosterSkillValues() {
+  const vals = {};
+  document.querySelectorAll('#redit-skills .redit-skill-picker').forEach(p => {
+    vals[p.dataset.skill] = parseInt(p.dataset.value || p.querySelector('.redit-skill-opt.active')?.textContent || '2', 10);
+  });
+  return vals;
+}
+
+window.openRosterEditModal = function(id) {
+  rosterEditId = id;
+  const p = rosterPlayers[id];
+  document.getElementById('redit-title').textContent = 'Edit Player';
+  document.getElementById('redit-name').value = p.name;
+  document.getElementById('redit-num').value = p.num;
+  populateRosterSelects(p.pos, p.pos2 || '');
+  populateRosterSkills(p);
+  document.getElementById('redit-delete-btn').style.display = 'block';
+  document.getElementById('roster-edit-modal').style.display = 'flex';
+};
+window.openRosterAddModal = function() {
+  rosterEditId = null;
+  document.getElementById('redit-title').textContent = 'Add Player';
+  document.getElementById('redit-name').value = '';
+  document.getElementById('redit-num').value = '';
+  populateRosterSelects(ROSTER_POSITIONS[0], '');
+  populateRosterSkills(null);
+  document.getElementById('redit-delete-btn').style.display = 'none';
+  document.getElementById('roster-edit-modal').style.display = 'flex';
+};
+window.closeRosterEditModal = function() {
+  document.getElementById('roster-edit-modal').style.display = 'none';
+  rosterEditId = null;
+};
+window.saveRosterEdit = function() {
+  const name = document.getElementById('redit-name').value.trim();
+  const num = parseInt(document.getElementById('redit-num').value, 10);
+  if (!name) { alert('Please enter a name.'); return; }
+  if (isNaN(num)) { alert('Please enter a jersey number.'); return; }
+  const pos = document.getElementById('redit-pos').value;
+  const pos2 = document.getElementById('redit-pos2').value;
+  const skills = getRosterSkillValues();
+
+  if (rosterEditId) {
+    rosterPlayers[rosterEditId] = { name, num, pos, pos2, ...skills };
+    saveRosterPlayers('Edited ' + name + "'s roster info");
+  } else {
+    let id = rosterKeyFor(name);
+    if (rosterPlayers[id]) id = id + '-' + Date.now();
+    rosterPlayers[id] = { name, num, pos, pos2, ...skills };
+    saveRosterPlayers('Added ' + name + ' to the roster');
+  }
+  buildRoster();
+  window.closeRosterEditModal();
+};
+window.deleteRosterPlayer = function() {
+  if (!rosterEditId) return;
+  const p = rosterPlayers[rosterEditId];
+  if (!confirm('Remove ' + p.name + ' from the roster? This cannot be undone.')) return;
+  delete rosterPlayers[rosterEditId];
+  saveRosterPlayers('Removed ' + p.name + ' from the roster');
+  buildRoster();
+  window.closeRosterEditModal();
+};
+
+onValue(ref(db, 'rosterPlayers'), (snapshot) => {
+  if (ignoreNextRoster) { ignoreNextRoster = false; return; }
+  const data = snapshot.val();
+  if (data) { rosterPlayers = data; }
+  else { rosterPlayers = JSON.parse(JSON.stringify(defaultRosterPlayers)); set(ref(db, 'rosterPlayers'), rosterPlayers); }
+  buildRoster();
+});
 
 // Detect mobile
 function isMobile() {
