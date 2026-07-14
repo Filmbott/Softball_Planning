@@ -531,10 +531,10 @@
     <table class="schedule-table" id="schedule-table">
       <thead>
         <tr>
-          <th class="hide-mobile">Week</th>
-          <th class="hide-mobile">Day</th>
+          <th>Week</th>
+          <th>Day</th>
           <th>Date</th>
-          <th class="hide-mobile">Time</th>
+          <th>Time</th>
           <th>Opponent</th>
           <th class="hide-mobile">Home/Away</th>
         </tr>
@@ -908,10 +908,10 @@ async function buildSchedule() {
       }
 
       return '<tr' + rowClass + '>' +
-        '<td class="hide-mobile">' + weekLabel + '</td>' +
-        '<td class="hide-mobile">' + g.day + '</td>' +
+        '<td>' + weekLabel + '</td>' +
+        '<td>' + g.day + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
-        '<td class="hide-mobile">' + g.time + '</td>' +
+        '<td>' + g.time + '</td>' +
         '<td>' + opponent + '</td>' +
         '<td class="hide-mobile">' + homeAway + '</td>' +
         '</tr>';
