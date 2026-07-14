@@ -774,7 +774,7 @@ window.addPlayer = function() { const sel=document.getElementById('add-select');
 
 // POSITIONS
 function assignedSet() { const s=new Set(); state.positions.forEach(p=>{if(p.primary)s.add(p.primary);if(p.backup)s.add(p.backup);}); return s; }
-function buildOptions(sel) { return '<option value="">— none —</option>'+allNames.map(n=>'<option value="'+n+'"'+(n===sel?' selected':'')+'>'+n+'</option>').join(''); }
+function buildOptions(sel) { const sorted=[...allNames].sort((a,b)=>a.localeCompare(b)); return '<option value="">— none —</option>'+sorted.map(n=>'<option value="'+n+'"'+(n===sel?' selected':'')+'>'+n+'</option>').join(''); }
 function buildChips() { const a=assignedSet(); document.getElementById('chip-grid').innerHTML=allNames.filter(n=>!a.has(n)).map(n=>'<span class="chip">'+n+'</span>').join('')||'<span class="chip">Everyone assigned ✓</span>'; }
 function buildPosGrid() {
   const grid = document.getElementById('pos-grid'); grid.innerHTML = '';
