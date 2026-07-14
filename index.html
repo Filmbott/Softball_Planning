@@ -99,11 +99,14 @@
     text-align: center;
   }
   .hero-church {
-    font-size: clamp(22px, 3vw, 46px); font-weight: 800; color: #111;
+    font-size: clamp(22px, 3vw, 46px); font-weight: 500; color: #111;
     letter-spacing: 0.02em; line-height: 1.15;
     text-shadow: 0 2px 8px rgba(255,255,255,0.8), 0 4px 20px rgba(255,255,255,0.4);
-    white-space: normal; margin-bottom: 0; text-align: center;
+    white-space: nowrap; margin-bottom: 0; text-align: center;
   }
+  /* Desktop: show space, hide break = 1 line wrapping naturally to 2 */
+  .church-break { display: none; }
+  .church-space { display: inline; }
   .hero-softball {
     display: block;
     font-size: clamp(50px, 9vw, 120px); font-weight: 900; color: #111;
@@ -313,10 +316,15 @@
       font-size: clamp(18px, 5.5vw, 46px) !important;
       white-space: normal !important;
       line-height: 1.2 !important;
+      font-weight: 800 !important;
     }
+    /* Mobile: show break for 3 lines, hide the space */
+    .church-break { display: inline !important; }
+    .church-space { display: none !important; }
     .hero-softball {
       font-size: clamp(36px, 11vw, 120px) !important;
       letter-spacing: 0.12em !important;
+      font-weight: 900 !important;
     }
 
     /* Logo smaller on mobile */
@@ -449,7 +457,7 @@
     <div class="hero-bg"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <h1 class="hero-church">Gospel Community<br>Church Eugene</h1>
+      <h1 class="hero-church">Gospel Community<span class="church-break"><br></span><span class="church-space"> </span>Church Eugene</h1>
       <span class="hero-softball">SOFTBALL</span>
     </div>
 
