@@ -308,8 +308,8 @@
     .bottom-nav-item.active { color: #fff; }
     .bottom-nav-item svg { width: 22px; height: 22px; }
 
-    /* Add padding so content doesn't hide behind bottom nav */
-    .app-page { padding-bottom: 80px; padding-top: 76px; }
+    /* Add padding so content doesn't hide behind bottom nav or logo */
+    .app-page { padding-bottom: 80px; padding-top: 140px; }
 
     /* Hero text scaling — keep on one line */
     .hero-church {
@@ -531,10 +531,10 @@
     <table class="schedule-table" id="schedule-table">
       <thead>
         <tr>
-          <th>Week</th>
-          <th>Day</th>
+          <th class="hide-mobile">Week</th>
+          <th class="hide-mobile">Day</th>
           <th>Date</th>
-          <th>Time</th>
+          <th class="hide-mobile">Time</th>
           <th>Opponent</th>
           <th class="hide-mobile">Home/Away</th>
         </tr>
@@ -908,10 +908,10 @@ async function buildSchedule() {
       }
 
       return '<tr' + rowClass + '>' +
-        '<td>' + weekLabel + '</td>' +
-        '<td>' + g.day + '</td>' +
+        '<td class="hide-mobile">' + weekLabel + '</td>' +
+        '<td class="hide-mobile">' + g.day + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
-        '<td>' + g.time + '</td>' +
+        '<td class="hide-mobile">' + g.time + '</td>' +
         '<td>' + opponent + '</td>' +
         '<td class="hide-mobile">' + homeAway + '</td>' +
         '</tr>';
