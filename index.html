@@ -500,7 +500,6 @@
           <th>Date</th>
           <th>Time</th>
           <th>Opponent</th>
-          <th class="hide-mobile">Home/Away</th>
         </tr>
       </thead>
       <tbody id="schedule-body"></tbody>
@@ -873,8 +872,7 @@ async function buildSchedule() {
         '<td>' + g.day + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
         '<td>' + g.time + '</td>' +
-        '<td>' + opponent + '</td>' +
-        '<td class="hide-mobile">' + homeAway + '</td>' +
+        '<td>' + (isPlayoffRow ? opponent : homeAway) + '</td>' +
         '</tr>';
     }).join('');
     if (wrap) wrap.textContent = 'Last updated: ' + new Date().toLocaleString();
