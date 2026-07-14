@@ -532,11 +532,11 @@
       <thead>
         <tr>
           <th>Week</th>
+          <th>Day</th>
           <th>Date</th>
-          <th class="hide-mobile">Day</th>
           <th>Time</th>
-          <th class="hide-mobile">Away</th>
-          <th class="hide-mobile">Home</th>
+          <th>Opponent</th>
+          <th class="hide-mobile">Home/Away</th>
         </tr>
       </thead>
       <tbody id="schedule-body"></tbody>
@@ -888,13 +888,29 @@ async function buildSchedule() {
       const rescheduleNote = isRescheduled ? '<span class="reschedule-note">(rescheduled)</span>' : '';
       const makeupNote = isMakeup ? '<span class="makeup-note">(makeup game)</span>' : '';
       const dateStr = gameDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      // Determine opponent and home/away indicator
+      const isGccAway = g.away.toLowerCase().includes('gospel');
+      const isPlayoffRow = g.away.toLowerCase().includes('playoff') || g.away.toLowerCase().includes('championship') || g.away.toLowerCase().includes('makeup');
+      let opponent = '';
+      let homeAway = '';
+      if (isPlayoffRow) {
+        opponent = g.away;
+        homeAway = '—';
+      } else if (isGccAway) {
+        opponent = g.home || '—';
+        homeAway = '@ ' + (g.home || '');
+      } else {
+        opponent = g.away || '—';
+        homeAway = 'vs ' + (g.away || '');
+      }
+
       return '<tr' + rowClass + '>' +
         '<td>' + weekLabel + '</td>' +
+        '<td>' + g.day + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
-        '<td class="hide-mobile">' + g.day + '</td>' +
         '<td>' + g.time + '</td>' +
-        '<td class="hide-mobile">' + g.away + '</td>' +
-        '<td class="hide-mobile">' + (g.home || '—') + '</td>' +
+        '<td>' + opponent + '</td>' +
+        '<td class="hide-mobile">' + homeAway + '</td>' +
         '</tr>';
     }).join('');
     if (wrap) wrap.textContent = 'Last updated: ' + new Date().toLocaleString();
