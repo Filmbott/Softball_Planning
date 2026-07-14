@@ -346,6 +346,9 @@
     /* Schedule — hide Day column on mobile */
     .schedule-table .hide-mobile { display: none; }
 
+    /* Schedule table font size on mobile */
+    .schedule-table { font-size: 11px; }
+    .schedule-table td, .schedule-table th { padding: 7px 4px; }
     /* Standings table font size */
     .standings-table { font-size: 12px; }
     .standings-table td, .standings-table th { padding: 8px 6px; }
@@ -531,7 +534,7 @@
     <table class="schedule-table" id="schedule-table">
       <thead>
         <tr>
-          <th>Week</th>
+          <th class="hide-mobile">Week</th>
           <th>Day</th>
           <th>Date</th>
           <th>Time</th>
@@ -908,7 +911,7 @@ async function buildSchedule() {
       }
 
       return '<tr' + rowClass + '>' +
-        '<td>' + weekLabel + '</td>' +
+        '<td class="hide-mobile">' + weekLabel + '</td>' +
         '<td>' + g.day + '</td>' +
         '<td>' + dateStr + rescheduleNote + makeupNote + '</td>' +
         '<td>' + g.time + '</td>' +
