@@ -272,6 +272,26 @@
   .clear-btn { font-size: 12px; color: #aaa; background: none; border: 1px solid #e5e5e5; border-radius: 8px; padding: 6px 12px; cursor: pointer; margin-bottom: 16px; }
   .clear-btn:hover { color: #A32D2D; border-color: #fca5a5; }
 
+  .history-session { border: 1px solid #e5e5e5; border-radius: 10px; margin-bottom: 8px; background: #fff; overflow: hidden; }
+  .history-session-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; cursor: pointer; }
+  .history-session-row:hover { background: #fafafa; }
+  .history-caret { background: none; border: none; cursor: pointer; color: #bbb; font-size: 13px; padding: 6px; border-radius: 6px; transition: transform 0.15s, color 0.15s; flex-shrink: 0; }
+  .history-caret:hover { color: #666; }
+  .history-caret.open { transform: rotate(180deg); }
+  .history-detail { border-top: 1px solid #f0f0ee; padding: 10px 14px 14px; background: #fafaf9; }
+  .history-subitem { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eee; font-size: 12.5px; }
+  .history-subitem:last-of-type { border-bottom: none; }
+  .history-subwhat { color: #444; display: flex; align-items: center; gap: 6px; }
+  .history-subwhen { color: #bbb; font-size: 11px; flex-shrink: 0; }
+  .history-tag { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+  .history-tag-batting { background: #e3f0fc; color: #1a6eb5; }
+  .history-tag-positions { background: #eaf3de; color: #3B6D11; }
+  .history-tag-players { background: #fbe9d0; color: #854F0B; }
+  .history-revert-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .history-revert-btn { flex: 1; min-width: 150px; font-size: 12.5px; padding: 9px 10px; border-radius: 8px; border: 1px solid #f3b7b7; background: #fff; color: #A32D2D; cursor: pointer; font-family: inherit; font-weight: 500; }
+  .history-revert-btn:hover { background: #fcebeb; }
+  .history-norevert { margin-top: 10px; font-size: 11px; color: #bbb; font-style: italic; }
+
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .modal { background: #fff; border-radius: 16px; padding: 28px 24px; max-width: 360px; width: 90%; }
@@ -704,10 +724,10 @@ function buildRoster() {
   }).join('');
 }
 
-function saveRosterPlayers(desc) {
+function saveRosterPlayers() {
   ignoreNextRoster = true;
   set(ref(db, 'rosterPlayers'), rosterPlayers)
-    .then(() => { if (desc) logChange(desc); })
+    .then(() => {})
     .catch(() => { console.log('Roster save failed'); });
 }
 
@@ -775,15 +795,23 @@ window.saveRosterEdit = function() {
   const pos2 = document.getElementById('redit-pos2').value;
   const skills = getRosterSkillValues();
 
+  let desc, domainPatch, patchId;
   if (rosterEditId) {
+    const beforePlayer = JSON.parse(JSON.stringify(rosterPlayers[rosterEditId]));
     rosterPlayers[rosterEditId] = { name, num, pos, pos2, ...skills };
-    saveRosterPlayers('Edited ' + name + "'s roster info");
+    desc = 'Edited ' + name + "'s roster info";
+    patchId = rosterEditId;
+    domainPatch = { type: 'edit', id: rosterEditId, before: beforePlayer };
   } else {
     let id = rosterKeyFor(name);
     if (rosterPlayers[id]) id = id + '-' + Date.now();
     rosterPlayers[id] = { name, num, pos, pos2, ...skills };
-    saveRosterPlayers('Added ' + name + ' to the roster');
+    desc = 'Added ' + name + ' to the roster';
+    patchId = id;
+    domainPatch = { type: 'add', id: id };
   }
+  saveRosterPlayers();
+  logChange(desc, 'players', domainPatch);
   buildRoster();
   window.closeRosterEditModal();
 };
@@ -791,8 +819,10 @@ window.deleteRosterPlayer = function() {
   if (!rosterEditId) return;
   const p = rosterPlayers[rosterEditId];
   if (!confirm('Remove ' + p.name + ' from the roster? This cannot be undone.')) return;
+  const beforePlayer = JSON.parse(JSON.stringify(p));
   delete rosterPlayers[rosterEditId];
-  saveRosterPlayers('Removed ' + p.name + ' from the roster');
+  saveRosterPlayers();
+  logChange('Removed ' + p.name + ' from the roster', 'players', { type: 'delete', id: rosterEditId, before: beforePlayer });
   buildRoster();
   window.closeRosterEditModal();
 };
@@ -881,8 +911,13 @@ function setSyncStatus(status, text) {
 }
 
 // HISTORY
-function logChange(desc) {
-  push(ref(db, 'history'), { who: userName || 'Someone', what: desc, when: Date.now() });
+const SESSION_GAP_MS = 60 * 60 * 1000; // group a person's changes into one session unless >1hr apart
+
+function logChange(desc, domain, patch) {
+  const entry = { who: userName || 'Someone', what: desc, when: Date.now() };
+  if (domain) entry.domain = domain;
+  if (patch) entry.patch = patch;
+  push(ref(db, 'history'), entry);
 }
 function formatTime(ts) {
   const diff = Date.now() - ts;
@@ -893,23 +928,166 @@ function formatTime(ts) {
   if (d === 1) return 'yesterday';
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-function buildHistoryList(entries) {
-  const list = document.getElementById('history-list');
-  if (!entries || !Object.keys(entries).length) { list.innerHTML = '<li class="history-empty">No changes recorded yet.</li>'; return; }
-  list.innerHTML = Object.values(entries).sort((a,b) => b.when - a.when).map(e =>
-    '<li class="history-item"><div class="history-who">' + e.who + '</div><div class="history-what">' + e.what + '</div><div class="history-when">' + formatTime(e.when) + '</div></li>'
-  ).join('');
+function formatClock(ts) {
+  return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
+function formatSessionLabel(startTs, endTs) {
+  const d1 = new Date(startTs), d2 = new Date(endTs);
+  const dateStr = d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (d1.toDateString() === d2.toDateString()) {
+    return startTs === endTs ? (dateStr + ', ' + formatClock(startTs)) : (dateStr + ', ' + formatClock(startTs) + '–' + formatClock(endTs));
+  }
+  return dateStr + ' – ' + d2.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Groups a person's changes into "sessions" — consecutive entries by the same person
+// with no gap longer than SESSION_GAP_MS between them. (Used for grouping/display only —
+// reverting is always done one change at a time, never as a session-wide wipe.)
+function buildSessions(entries) {
+  const byPerson = {};
+  entries.forEach(e => { (byPerson[e.who] = byPerson[e.who] || []).push(e); });
+  let sessions = [];
+  Object.keys(byPerson).forEach(who => {
+    const list = byPerson[who].slice().sort((a,b) => a.when - b.when);
+    let current = [];
+    list.forEach(e => {
+      if (current.length && (e.when - current[current.length-1].when) > SESSION_GAP_MS) {
+        sessions.push(current); current = [];
+      }
+      current.push(e);
+    });
+    if (current.length) sessions.push(current);
+  });
+  sessions.sort((a,b) => b[b.length-1].when - a[a.length-1].when);
+  return sessions;
+}
+
+const CATEGORY_META = {
+  batting:   { label: 'Batting Order',   cls: 'history-tag-batting' },
+  positions: { label: 'Position Editor', cls: 'history-tag-positions' },
+  players:   { label: 'Roster',          cls: 'history-tag-players' }
+};
+
+let historySessions = []; // grouped sessions, indexed for the per-category revert buttons
+
+function buildHistoryList(entriesObj) {
+  const list = document.getElementById('history-list');
+  if (!entriesObj || !Object.keys(entriesObj).length) { list.innerHTML = '<li class="history-empty">No changes recorded yet.</li>'; historySessions = []; return; }
+  const entries = Object.entries(entriesObj).map(([key, e]) => ({ key, ...e }));
+  historySessions = buildSessions(entries);
+  list.innerHTML = historySessions.map((session, i) => {
+    const who = session[0].who;
+    const first = session[0], last = session[session.length-1];
+    const label = formatSessionLabel(first.when, last.when);
+    const categories = [...new Set(session.filter(e => e.domain && e.patch).map(e => e.domain))];
+    const detailItems = session.slice().reverse().map(e => {
+      const meta = e.domain ? CATEGORY_META[e.domain] : null;
+      const tag = meta ? '<span class="history-tag ' + meta.cls + '">' + meta.label + '</span>' : '';
+      return '<div class="history-subitem"><span class="history-subwhat">' + tag + e.what + '</span><span class="history-subwhen">' + formatClock(e.when) + '</span></div>';
+    }).join('');
+    const categoryButtons = categories.map(domain => {
+      const meta = CATEGORY_META[domain];
+      const count = session.filter(e => e.domain === domain && e.patch).length;
+      return '<button class="history-revert-btn" onclick="revertSessionCategory(' + i + ', \'' + domain + '\')">Revert ' + meta.label + ' (' + count + ')</button>';
+    }).join('');
+    return '<li class="history-session">' +
+      '<div class="history-session-row" onclick="toggleHistorySession(' + i + ')">' +
+        '<div><div class="history-who">' + who + '</div><div class="history-when">' + label + ' · ' + session.length + ' change' + (session.length > 1 ? 's' : '') + '</div></div>' +
+        '<button class="history-caret" id="hcaret-' + i + '" aria-label="Expand" onclick="event.stopPropagation(); toggleHistorySession(' + i + ')">&#9662;</button>' +
+      '</div>' +
+      '<div class="history-detail" id="hdetail-' + i + '" style="display:none">' +
+        detailItems +
+        (categoryButtons ? '<div class="history-revert-row">' + categoryButtons + '</div>' : '') +
+      '</div>' +
+    '</li>';
+  }).join('');
+}
+window.toggleHistorySession = function(i) {
+  const detail = document.getElementById('hdetail-' + i);
+  const caret = document.getElementById('hcaret-' + i);
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  caret.classList.toggle('open', !open);
+};
+
+// Applies the inverse of a single logged change on top of whatever the CURRENT state is,
+// and logs the reversal itself (so it can, in turn, be reverted later). No confirmation here —
+// callers are responsible for confirming with the user before invoking this.
+function applyRevert(entry) {
+  const p = entry.patch;
+  if (!entry.domain || !p) return;
+
+  if (entry.domain === 'batting') {
+    if (p.type === 'bench') {
+      state.bench = state.bench.filter(n => n !== p.player);
+      const idxIn = Math.min(p.fromIndex ?? state.order.length, state.order.length);
+      if (!state.order.includes(p.player)) state.order.splice(idxIn, 0, p.player);
+      saveToFirebase(); buildBatList(); buildBenchList(); buildAddSelect();
+      logChange('Reverted: ' + entry.what, 'batting', { type: 'restore', player: p.player });
+    } else if (p.type === 'restore') {
+      state.order = state.order.filter(n => n !== p.player);
+      if (!state.bench.includes(p.player)) state.bench.push(p.player);
+      saveToFirebase(); buildBatList(); buildBenchList(); buildAddSelect();
+      logChange('Reverted: ' + entry.what, 'batting', { type: 'bench', player: p.player, fromIndex: state.order.length });
+    } else if (p.type === 'reorder') {
+      const curIdx = state.order.indexOf(p.player);
+      if (curIdx !== -1) {
+        state.order.splice(curIdx, 1);
+        const idxIn = Math.min(p.fromIndex, state.order.length);
+        state.order.splice(idxIn, 0, p.player);
+        saveToFirebase(); buildBatList();
+        logChange('Reverted: ' + entry.what, 'batting', { type: 'reorder', player: p.player, fromIndex: idxIn, toIndex: curIdx });
+      }
+    }
+  } else if (entry.domain === 'positions') {
+    if (p.type === 'setPos') {
+      const cur = state.positions[p.posIndex][p.field] || '';
+      state.positions[p.posIndex][p.field] = p.oldValue;
+      buildChips(); updateDiagram(); saveToFirebase();
+      logChange('Reverted: ' + entry.what, 'positions', { type: 'setPos', posIndex: p.posIndex, field: p.field, oldValue: cur, newValue: p.oldValue, posLabel: p.posLabel });
+    }
+  } else if (entry.domain === 'players') {
+    if (p.type === 'edit') {
+      const cur = rosterPlayers[p.id] ? JSON.parse(JSON.stringify(rosterPlayers[p.id])) : null;
+      rosterPlayers[p.id] = JSON.parse(JSON.stringify(p.before));
+      saveRosterPlayers(); buildRoster();
+      logChange('Reverted: ' + entry.what, 'players', { type: 'edit', id: p.id, before: cur || p.before });
+    } else if (p.type === 'add') {
+      const cur = rosterPlayers[p.id] ? JSON.parse(JSON.stringify(rosterPlayers[p.id])) : null;
+      delete rosterPlayers[p.id];
+      saveRosterPlayers(); buildRoster();
+      if (cur) logChange('Reverted: ' + entry.what, 'players', { type: 'delete', id: p.id, before: cur });
+    } else if (p.type === 'delete') {
+      rosterPlayers[p.id] = JSON.parse(JSON.stringify(p.before));
+      saveRosterPlayers(); buildRoster();
+      logChange('Reverted: ' + entry.what, 'players', { type: 'add', id: p.id });
+    }
+  }
+}
+
+// Reverts every change a person made to one specific tab (Batting Order / Position Editor / Roster)
+// during one session, stepping backward through them most-recent-first. Changes they made to
+// other tabs, and anyone else's changes, are left alone.
+window.revertSessionCategory = function(sessionIdx, domain) {
+  const session = historySessions[sessionIdx];
+  if (!session) return;
+  const meta = CATEGORY_META[domain];
+  const touching = session.filter(e => e.domain === domain && e.patch).sort((a,b) => b.when - a.when); // most recent first
+  if (!touching.length) return;
+  if (!confirm('Revert ' + touching.length + ' ' + meta.label + ' change' + (touching.length > 1 ? 's' : '') + ' by ' + session[0].who + ' from this session? Their changes to other tabs, and everyone else\'s changes, will be left as they are.')) return;
+  touching.forEach(e => applyRevert(e));
+};
+
 window.clearHistory = function() { if (confirm('Clear all history? This cannot be undone.')) remove(ref(db,'history')); };
 
 // SAVE
-function saveToFirebase(desc) {
+function saveToFirebase() {
   if (saveTimeout) clearTimeout(saveTimeout);
   setSyncStatus('syncing', 'Saving...');
   saveTimeout = setTimeout(() => {
     ignoreNext = true;
     set(ref(db,'roster'), state)
-      .then(() => { setSyncStatus('connected','All changes saved'); if (desc) logChange(desc); })
+      .then(() => setSyncStatus('connected','All changes saved'))
       .catch(() => setSyncStatus('error','Save failed'));
   }, 600);
 }
@@ -942,8 +1120,9 @@ function buildBatList() {
         const items = [...list.querySelectorAll('.bat-item')];
         const fi = items.indexOf(dragSrc), ti = items.indexOf(li);
         const moved = state.order[fi];
-        const [m] = state.order.splice(fi,1); state.order.splice(ti,0,m);
-        buildBatList(); saveToFirebase('Moved '+moved+' to spot '+(ti+1)+' in batting order');
+        state.order.splice(fi,1); state.order.splice(ti,0,moved);
+        buildBatList(); saveToFirebase();
+        logChange('Moved '+moved+' to spot '+(ti+1)+' in batting order', 'batting', { type: 'reorder', player: moved, fromIndex: fi, toIndex: ti });
       }
     });
     list.appendChild(li);
@@ -958,8 +1137,17 @@ function buildBenchList() {
     list.appendChild(li);
   });
 }
-window.removePlayer = function(name) { state.order=state.order.filter(n=>n!==name); state.bench.push(name); buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase('Benched '+name); };
-window.restorePlayer = function(name) { state.bench=state.bench.filter(n=>n!==name); state.order.push(name); buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase('Added '+name+' back to batting order'); };
+window.removePlayer = function(name) {
+  const fromIndex = state.order.indexOf(name);
+  state.order=state.order.filter(n=>n!==name); state.bench.push(name);
+  buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase();
+  logChange('Benched '+name, 'batting', { type: 'bench', player: name, fromIndex });
+};
+window.restorePlayer = function(name) {
+  state.bench=state.bench.filter(n=>n!==name); state.order.push(name);
+  buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase();
+  logChange('Added '+name+' back to batting order', 'batting', { type: 'restore', player: name });
+};
 window.addPlayer = function() { const sel=document.getElementById('add-select'); const name=sel.value; if(!name)return; window.restorePlayer(name); sel.value=''; };
 
 // POSITIONS
@@ -976,9 +1164,11 @@ function buildPosGrid() {
   buildChips();
 }
 window.updatePos = function(i,field,value,posLabel) {
-  const old=state.positions[i][field]||'none'; state.positions[i][field]=value;
+  const old=state.positions[i][field]||'';
+  state.positions[i][field]=value;
   buildChips(); updateDiagram();
-  saveToFirebase((value?'Set '+value+' as '+field:'Cleared '+field)+' at '+posLabel+' (was '+old+')');
+  saveToFirebase();
+  logChange((value?'Set '+value+' as '+field:'Cleared '+field)+' at '+posLabel+' (was '+(old||'none')+')', 'positions', { type: 'setPos', posIndex: i, field, oldValue: old, newValue: value, posLabel });
 };
 
 // FIREBASE
