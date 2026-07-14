@@ -214,6 +214,25 @@
   .pos-box-coral .pos-label { fill: #7f1d1d; font-size: 11px; font-weight: 700; }
   .pos-box-coral .name-label { fill: #991b1b; font-size: 10.5px; }
 
+  /* Roster */
+  .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .roster-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 14px 16px; }
+  .roster-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .roster-number { width: 36px; height: 36px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .roster-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .roster-pos { font-size: 12px; color: #888; margin-top: 1px; }
+  .skill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .skill-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .skill-label { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .skill-val { font-size: 13px; font-weight: 700; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .skill-3 { background: #eaf3de; color: #3B6D11; }
+  .skill-2 { background: #faeeda; color: #854F0B; }
+  .skill-1 { background: #fcebeb; color: #A32D2D; }
+  .overall-bar { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+  .overall-label { font-size: 11px; color: #aaa; font-weight: 500; }
+  .overall-track { flex: 1; height: 4px; background: #f0f0ee; border-radius: 2px; }
+  .overall-fill { height: 4px; border-radius: 2px; background: #1a1a1a; }
+
   /* History */
   .history-list { list-style: none; }
   .history-item { padding: 12px 14px; border: 1px solid #e5e5e5; border-radius: 10px; margin-bottom: 8px; background: #fff; }
@@ -237,25 +256,8 @@
   /* ============ MOBILE RESPONSIVE ============ */
   @media (max-width: 768px) {
 
-    /* Hide desktop nav links, show hamburger */
+    /* Hide desktop nav links on mobile */
     .nav-links { display: none; }
-    .hamburger { display: none !important; }
-
-    /* Mobile menu — hamburger opens from top */
-    .mobile-menu {
-      display: none; position: fixed; top: 0; left: 0; right: 0;
-      background: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
-      z-index: 48; padding: 80px 0 16px;
-    }
-    .mobile-menu.open { display: block; }
-    .mobile-menu a {
-      display: block; padding: 14px 24px;
-      color: rgba(255,255,255,0.85); font-size: 15px;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      font-weight: 500; cursor: pointer; border-bottom: 0.5px solid rgba(255,255,255,0.08);
-    }
-    .mobile-menu a:last-child { border-bottom: none; }
-    .mobile-menu a.active { color: #fff; }
 
 
 
@@ -332,9 +334,6 @@
 
   @media (min-width: 769px) {
     /* Hide mobile-only elements on desktop */
-    .hamburger { display: none; }
-    .mobile-menu { display: none !important; }
-    .more-menu { display: none !important; }
     .bottom-nav { display: none; }
   }
 
@@ -371,24 +370,13 @@
     <li><a onclick="showPage('field')" id="nav-field">Field Diagram</a></li>
     <li><a onclick="showPage('schedule')" id="nav-schedule">Schedule</a></li>
     <li><a onclick="showPage('standings')" id="nav-standings">Standings</a></li>
+    <li><a onclick="showPage('roster')" id="nav-roster">Roster</a></li>
     <li><a onclick="showPage('history')" id="nav-history">History</a></li>
   </ul>
-  <!-- Hamburger (mobile only) -->
-  <div class="hamburger" id="hamburger" onclick="window.toggleMenu()" aria-label="Open menu">
-    <span></span><span></span><span></span>
-  </div>
+
 </nav>
 
-<!-- Mobile dropdown menu (hamburger) -->
-<div class="mobile-menu" id="mobile-menu">
-  <a onclick="showPage('home');closeMenu()" id="mnav-home" class="active">Home</a>
-  <a onclick="showPage('batting');closeMenu()" id="mnav-batting">Batting Order</a>
-  <a onclick="showPage('positions');closeMenu()" id="mnav-positions">Position Editor</a>
-  <a onclick="showPage('field');closeMenu()" id="mnav-field">Field Diagram</a>
-  <a onclick="showPage('schedule');closeMenu()" id="mnav-schedule">Schedule</a>
-  <a onclick="showPage('standings');closeMenu()" id="mnav-standings">Standings</a>
-  <a onclick="showPage('history');closeMenu()" id="mnav-history">History</a>
-</div>
+
 
 
 
@@ -518,6 +506,15 @@
   <p style="font-size:11px;color:#bbb;margin-top:12px;text-align:center">Source: <a href="https://www.eugenechurchsoftball.com/Schedule" target="_blank" style="color:#bbb">eugenechurchsoftball.com</a> · Updates on every page load</p>
 </div>
 
+<!-- ROSTER -->
+<div id="page-roster" class="app-page">
+  <p class="page-title">Roster</p>
+  <br/>
+  <p class="note">Full team roster with skill ratings (1 = developing · 2 = average · 3 = strong). Used as reference for batting order and position assignments.</p>
+  <br/>
+  <div class="roster-grid" id="roster-grid"></div>
+</div>
+
 <!-- HISTORY -->
 <div id="page-history" class="app-page">
   <p class="page-title">Change History</p>
@@ -583,7 +580,7 @@ window.showPage = function(page, pushState) {
   document.getElementById('page-home').style.display = 'none';
   document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-  document.querySelectorAll('.mobile-menu a').forEach(a => a.classList.remove('active'));
+
   document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
   if (page === 'home') {
     document.getElementById('page-home').style.display = 'block';
@@ -593,9 +590,7 @@ window.showPage = function(page, pushState) {
   // Desktop nav
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  // Mobile dropdown nav
-  const mnavEl = document.getElementById('mnav-' + page);
-  if (mnavEl) mnavEl.classList.add('active');
+
   // Bottom nav — map pages to bottom nav items
   const bottomMap = { home: 'home', batting: 'batting', schedule: 'schedule', standings: 'standings', field: 'field', positions: 'field', history: 'field' };
   const bnavEl = document.getElementById('bnav-' + (bottomMap[page] || 'more'));
@@ -616,12 +611,13 @@ window.addEventListener('popstate', function(e) {
 // On initial load, read URL and show correct page + trigger data loads
 (function() {
   const path = window.location.pathname.replace('/', '').trim();
-  const validPages = ['home','batting','positions','field','schedule','standings','history'];
+  const validPages = ['home','batting','positions','field','schedule','standings','history','roster'];
   const page = validPages.includes(path) ? path : 'home';
   window.showPage(page, false);
   // Trigger data loads for pages that fetch live data
   if (page === 'schedule') buildSchedule();
   if (page === 'standings') loadStandings();
+  if (page === 'roster') buildRoster();
 })();
 
 // USERNAME
@@ -768,28 +764,58 @@ onValue(ref(db,'roster'), (snapshot) => {
 onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 
 // MOBILE MENU
-window.toggleMenu = function() {
-  const menu = document.getElementById('mobile-menu');
-  const more = document.getElementById('more-menu');
-  if (more) more.classList.remove('open');
-  if (menu) menu.classList.toggle('open');
-};
-window.closeMenu = function() {
-  const menu = document.getElementById('mobile-menu');
-  if (menu) menu.classList.remove('open');
-};
 
 
-// Close menus when clicking outside
-document.addEventListener('click', function(e) {
-  const menu = document.getElementById('mobile-menu');
-  const hamburger = document.getElementById('hamburger');
 
-  if (menu && hamburger && !menu.contains(e.target) && !hamburger.contains(e.target)) {
-    menu.classList.remove('open');
-  }
+// ROSTER DATA
+const rosterData = [
+  { name: "Adam Wilson",      num: 32, pos: "Pitcher",       cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
+  { name: "Caleb Smith",      num: 10, pos: "Left Center",   cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  { name: "Cade Kyle",        num: 42, pos: "Right Center",  cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
+  { name: "Carson Wynn",      num: 12, pos: "Catcher",       cat: 2, thr: 2, ob: 1, pow: 2, run: 2 },
+  { name: "Chad Reeves",      num: 3,  pos: "2nd Base",      cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  { name: "Connor Thompson",  num: 11, pos: "1st Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  { name: "Cory Burket",      num: 1,  pos: "Pitcher",       cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  { name: "Jared Macedo",     num: 8,  pos: "Shortstop",     cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  { name: "Jesse Turk",       num: 35, pos: "3rd Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  { name: "Jesse Williams",   num: 6,  pos: "3rd Base",      cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  { name: "Joel Bauer",       num: 22, pos: "Left Center",   cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  { name: "Josh Gershom",     num: 17, pos: "Right Field",   cat: 1, thr: 2, ob: 1, pow: 1, run: 2 },
+  { name: "Mark Felderman",   num: 18, pos: "Left Field",    cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  { name: "Nate Newell",      num: 24, pos: "2nd Base",      cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  { name: "Nick Keith",       num: 76, pos: "Right Center",  cat: 2, thr: 3, ob: 3, pow: 3, run: 2 },
+  { name: "Parker Wynn",      num: 34, pos: "Outfield",      cat: 1, thr: 1, ob: 1, pow: 2, run: 1 },
+  { name: "Rick Reeves",      num: 33, pos: "Left Field",    cat: 2, thr: 3, ob: 3, pow: 3, run: 3 },
+  { name: "Zach Blalack",     num: 13, pos: "Catcher",       cat: 1, thr: 1, ob: 1, pow: 1, run: 1 },
+];
 
-});
+function buildRoster() {
+  const grid = document.getElementById('roster-grid');
+  if (!grid) return;
+  const sorted = [...rosterData].sort((a,b) => a.name.localeCompare(b.name));
+  grid.innerHTML = sorted.map(p => {
+    const overall = p.cat + p.thr + p.ob + p.pow + p.run;
+    const pct = Math.round((overall / 15) * 100);
+    function sc(v) { return v === 3 ? 'skill-3' : v === 2 ? 'skill-2' : 'skill-1'; }
+    return '<div class="roster-card">' +
+      '<div class="roster-card-header">' +
+        '<div class="roster-number">#' + p.num + '</div>' +
+        '<div><div class="roster-name">' + p.name + '</div><div class="roster-pos">' + p.pos + '</div></div>' +
+      '</div>' +
+      '<div class="skill-grid">' +
+        '<div class="skill-cell"><div class="skill-label">Catch</div><div class="skill-val ' + sc(p.cat) + '">' + p.cat + '</div></div>' +
+        '<div class="skill-cell"><div class="skill-label">Throw</div><div class="skill-val ' + sc(p.thr) + '">' + p.thr + '</div></div>' +
+        '<div class="skill-cell"><div class="skill-label">On Base</div><div class="skill-val ' + sc(p.ob) + '">' + p.ob + '</div></div>' +
+        '<div class="skill-cell"><div class="skill-label">Power</div><div class="skill-val ' + sc(p.pow) + '">' + p.pow + '</div></div>' +
+        '<div class="skill-cell"><div class="skill-label">Speed</div><div class="skill-val ' + sc(p.run) + '">' + p.run + '</div></div>' +
+      '</div>' +
+      '<div class="overall-bar">' +
+        '<span class="overall-label">Overall ' + overall + '/15</span>' +
+        '<div class="overall-track"><div class="overall-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
 
 // Detect mobile
 function isMobile() {
@@ -1136,6 +1162,7 @@ window.showPage = function(page, event) {
   origShowPage(page, event);
   if (page === 'standings') loadStandings();
   if (page === 'schedule') buildSchedule();
+  if (page === 'roster') buildRoster();
 };
 
 // Also handle popstate (back/forward) data loads
@@ -1143,6 +1170,7 @@ window.addEventListener('popstate', function(e) {
   const page = (e.state && e.state.page) ? e.state.page : 'home';
   if (page === 'schedule') buildSchedule();
   if (page === 'standings') loadStandings();
+  if (page === 'roster') buildRoster();
 });
 </script>
 </body>
