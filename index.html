@@ -337,6 +337,14 @@
     .more-menu { display: none !important; }
     .bottom-nav { display: none; }
   }
+
+  @media (max-width: 768px) {
+    /* Hide coach-only elements on mobile */
+    .coach-only { display: none !important; }
+    /* Clean read-only batting list */
+    .bat-item { cursor: default !important; }
+    .drag-handle { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -424,15 +432,15 @@
 <!-- BATTING ORDER -->
 <div id="page-batting" class="app-page">
   <p class="page-title">Batting Order</p>
-  <div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Connecting...</span></div>
-  <div class="user-bar"><span>Editing as</span>&nbsp;<strong id="user-display">...</strong>&nbsp;<button onclick="changeName()">change</button></div>
-  <p class="note">Drag to reorder. X to bench, + to bring back. All changes sync automatically.</p>
-  <div class="add-row">
+  <div class="sync-bar coach-only"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Connecting...</span></div>
+  <div class="user-bar coach-only"><span>Editing as</span>&nbsp;<strong id="user-display">...</strong>&nbsp;<button onclick="changeName()">change</button></div>
+  <p class="note coach-only">Drag to reorder. X to bench, + to bring back. All changes sync automatically.</p>
+  <div class="add-row coach-only">
     <select id="add-select"><option value="">Add a player...</option></select>
     <button class="add-btn" onclick="addPlayer()">+ Add</button>
   </div>
   <ul class="bat-list" id="bat-list"></ul>
-  <div id="bench-section" style="display:none">
+  <div id="bench-section" style="display:none" class="coach-only">
     <p class="bench-title">Can't play this week</p>
     <ul class="bench-list" id="bench-list"></ul>
   </div>
@@ -622,6 +630,10 @@ let userName = localStorage.getItem('softball_username') || '';
 const modal = document.getElementById('name-modal');
 const nameInput = document.getElementById('name-input');
 function checkName() {
+  if (isMobile()) {
+    modal.style.display = 'none';
+    return;
+  }
   if (!userName) { modal.style.display = 'flex'; setTimeout(() => nameInput.focus(), 100); }
   else { modal.style.display = 'none'; updateUserDisplays(); }
 }
@@ -694,7 +706,7 @@ function buildBatList() {
   state.order.forEach((name, i) => {
     const li = document.createElement('li');
     li.className = 'bat-item'; li.draggable = true; li.dataset.name = name;
-    li.innerHTML = '<span class="drag-handle">⠿</span><span class="bat-num">'+(i+1)+'.</span><span class="bat-name">'+name+'<span class="bat-jersey">#'+allPlayers[name]+'</span></span><button class="icon-btn remove" onclick="removePlayer(\''+name+'\')">✕</button>';
+    li.innerHTML = '<span class="drag-handle coach-only">⠿</span><span class="bat-num">'+(i+1)+'.</span><span class="bat-name">'+name+'<span class="bat-jersey">#'+allPlayers[name]+'</span></span><button class="icon-btn remove coach-only" onclick="removePlayer(\''+name+'\')">✕</button>';
     li.addEventListener('dragstart', e => { dragSrc=li; li.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
     li.addEventListener('dragend', () => { li.classList.remove('dragging'); document.querySelectorAll('.bat-item').forEach(x=>x.classList.remove('drag-over')); });
     li.addEventListener('dragover', e => { e.preventDefault(); li.classList.add('drag-over'); });
@@ -779,6 +791,11 @@ document.addEventListener('click', function(e) {
   }
 
 });
+
+// Detect mobile
+function isMobile() {
+  return window.innerWidth <= 768;
+}
 
 checkName();
 
