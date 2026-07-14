@@ -637,6 +637,174 @@ let ignoreNext = false;
 let saveTimeout = null;
 let dragSrc = null;
 
+// ROSTER DATA — seed values, used only the very first time 'rosterPlayers' is empty in Firebase.
+// After that, the roster lives in Firebase at 'rosterPlayers' and syncs in real time.
+const defaultRosterPlayers = {
+  "adam-wilson":     { name: "Adam Wilson",     num: 32, pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
+  "caleb-smith":      { name: "Caleb Smith",     num: 10, pos: "Left Center",   pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "cade-kyle":        { name: "Cade Kyle",       num: 42, pos: "Right Center",  pos2: "",              cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
+  "carson-wynn":      { name: "Carson Wynn",     num: 12, pos: "Catcher",       pos2: "",              cat: 2, thr: 2, ob: 1, pow: 2, run: 2 },
+  "chad-reeves":      { name: "Chad Reeves",     num: 3,  pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  "connor-thompson":  { name: "Connor Thompson", num: 11, pos: "1st Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "cory-burket":      { name: "Cory Burket",     num: 1,  pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
+  "jared-macedo":     { name: "Jared Macedo",    num: 8,  pos: "Shortstop",     pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  "jesse-turk":       { name: "Jesse Turk",      num: 35, pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "jesse-williams":   { name: "Jesse Williams",  num: 6,  pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
+  "joel-bauer":       { name: "Joel Bauer",      num: 22, pos: "Left Center",   pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  "josh-gershom":     { name: "Josh Gershom",    num: 17, pos: "Right Field",   pos2: "",              cat: 1, thr: 2, ob: 1, pow: 1, run: 2 },
+  "mark-felderman":   { name: "Mark Felderman",  num: 18, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
+  "nate-newell":      { name: "Nate Newell",     num: 24, pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
+  "nick-keith":       { name: "Nick Keith",      num: 76, pos: "Right Center",  pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 2 },
+  "parker-wynn":      { name: "Parker Wynn",     num: 34, pos: "Outfield",      pos2: "",              cat: 1, thr: 1, ob: 1, pow: 2, run: 1 },
+  "rick-reeves":      { name: "Rick Reeves",     num: 33, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 3 },
+  "zach-blalack":     { name: "Zach Blalack",    num: 13, pos: "Catcher",       pos2: "",              cat: 1, thr: 1, ob: 1, pow: 1, run: 1 },
+};
+
+const ROSTER_POSITIONS = ["Pitcher","Catcher","1st Base","2nd Base","Shortstop","3rd Base","Left Field","Left Center","Right Center","Right Field","Outfield","Utility"];
+const ROSTER_SKILLS = [
+  { key: "cat", label: "Catch" },
+  { key: "thr", label: "Throw" },
+  { key: "ob",  label: "On Base" },
+  { key: "pow", label: "Power" },
+  { key: "run", label: "Speed" }
+];
+
+let rosterPlayers = {};       // live Firebase-synced roster, keyed by player id
+let ignoreNextRoster = false;
+let rosterEditId = null;      // id of player currently being edited; null = "add new"
+
+function rosterKeyFor(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || ('player-' + Date.now());
+}
+
+function buildRoster() {
+  const grid = document.getElementById('roster-grid');
+  if (!grid) return;
+  const entries = Object.entries(rosterPlayers).sort((a,b) => a[1].name.localeCompare(b[1].name));
+  if (!entries.length) { grid.innerHTML = '<p style="color:#888;font-size:13px;text-align:center;padding:30px 0">No players yet. Add one above.</p>'; return; }
+  function sc(v) { return v === 3 ? 'skill-3' : v === 2 ? 'skill-2' : 'skill-1'; }
+  grid.innerHTML = entries.map(([id, p]) => {
+    const overall = p.cat + p.thr + p.ob + p.pow + p.run;
+    const pct = Math.round((overall / 15) * 100);
+    const posLabel = p.pos + (p.pos2 ? ' / ' + p.pos2 : '');
+    return '<div class="roster-card">' +
+      '<div class="roster-card-header">' +
+        '<div class="roster-number">#' + p.num + '</div>' +
+        '<div><div class="roster-name">' + p.name + '</div><div class="roster-pos">' + posLabel + '</div></div>' +
+        '<button class="roster-edit-btn" onclick="openRosterEditModal(\'' + id + '\')" aria-label="Edit player"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
+      '</div>' +
+      '<div class="skill-grid">' +
+        ROSTER_SKILLS.map(s => '<div class="skill-cell"><div class="skill-label">' + s.label + '</div><div class="skill-val ' + sc(p[s.key]) + '">' + p[s.key] + '</div></div>').join('') +
+      '</div>' +
+      '<div class="overall-bar">' +
+        '<span class="overall-label">Overall ' + overall + '/15</span>' +
+        '<div class="overall-track"><div class="overall-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function saveRosterPlayers(desc) {
+  ignoreNextRoster = true;
+  set(ref(db, 'rosterPlayers'), rosterPlayers)
+    .then(() => { if (desc) logChange(desc); })
+    .catch(() => { console.log('Roster save failed'); });
+}
+
+function populateRosterSelects(selectedPos, selectedPos2) {
+  const posSel = document.getElementById('redit-pos');
+  const pos2Sel = document.getElementById('redit-pos2');
+  posSel.innerHTML = ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos?' selected':'')+'>'+p+'</option>').join('');
+  pos2Sel.innerHTML = '<option value="">&mdash; none &mdash;</option>' + ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos2?' selected':'')+'>'+p+'</option>').join('');
+}
+
+function populateRosterSkills(player) {
+  const wrap = document.getElementById('redit-skills');
+  wrap.innerHTML = ROSTER_SKILLS.map(s => {
+    const val = player ? player[s.key] : 2;
+    return '<div class="redit-skill-row"><span>' + s.label + '</span><div class="redit-skill-picker" data-skill="' + s.key + '">' +
+      [1,2,3].map(v => '<button type="button" class="redit-skill-opt sel-' + v + (v===val?' active':'') + '" onclick="setRosterSkill(\''+s.key+'\','+v+',this)">' + v + '</button>').join('') +
+    '</div></div>';
+  }).join('');
+}
+window.setRosterSkill = function(key, val, btn) {
+  const picker = btn.closest('.redit-skill-picker');
+  picker.querySelectorAll('.redit-skill-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  picker.dataset.value = val;
+};
+function getRosterSkillValues() {
+  const vals = {};
+  document.querySelectorAll('#redit-skills .redit-skill-picker').forEach(p => {
+    vals[p.dataset.skill] = parseInt(p.dataset.value || p.querySelector('.redit-skill-opt.active')?.textContent || '2', 10);
+  });
+  return vals;
+}
+
+window.openRosterEditModal = function(id) {
+  rosterEditId = id;
+  const p = rosterPlayers[id];
+  document.getElementById('redit-title').textContent = 'Edit Player';
+  document.getElementById('redit-name').value = p.name;
+  document.getElementById('redit-num').value = p.num;
+  populateRosterSelects(p.pos, p.pos2 || '');
+  populateRosterSkills(p);
+  document.getElementById('redit-delete-btn').style.display = 'block';
+  document.getElementById('roster-edit-modal').style.display = 'flex';
+};
+window.openRosterAddModal = function() {
+  rosterEditId = null;
+  document.getElementById('redit-title').textContent = 'Add Player';
+  document.getElementById('redit-name').value = '';
+  document.getElementById('redit-num').value = '';
+  populateRosterSelects(ROSTER_POSITIONS[0], '');
+  populateRosterSkills(null);
+  document.getElementById('redit-delete-btn').style.display = 'none';
+  document.getElementById('roster-edit-modal').style.display = 'flex';
+};
+window.closeRosterEditModal = function() {
+  document.getElementById('roster-edit-modal').style.display = 'none';
+  rosterEditId = null;
+};
+window.saveRosterEdit = function() {
+  const name = document.getElementById('redit-name').value.trim();
+  const num = parseInt(document.getElementById('redit-num').value, 10);
+  if (!name) { alert('Please enter a name.'); return; }
+  if (isNaN(num)) { alert('Please enter a jersey number.'); return; }
+  const pos = document.getElementById('redit-pos').value;
+  const pos2 = document.getElementById('redit-pos2').value;
+  const skills = getRosterSkillValues();
+
+  if (rosterEditId) {
+    rosterPlayers[rosterEditId] = { name, num, pos, pos2, ...skills };
+    saveRosterPlayers('Edited ' + name + "'s roster info");
+  } else {
+    let id = rosterKeyFor(name);
+    if (rosterPlayers[id]) id = id + '-' + Date.now();
+    rosterPlayers[id] = { name, num, pos, pos2, ...skills };
+    saveRosterPlayers('Added ' + name + ' to the roster');
+  }
+  buildRoster();
+  window.closeRosterEditModal();
+};
+window.deleteRosterPlayer = function() {
+  if (!rosterEditId) return;
+  const p = rosterPlayers[rosterEditId];
+  if (!confirm('Remove ' + p.name + ' from the roster? This cannot be undone.')) return;
+  delete rosterPlayers[rosterEditId];
+  saveRosterPlayers('Removed ' + p.name + ' from the roster');
+  buildRoster();
+  window.closeRosterEditModal();
+};
+
+onValue(ref(db, 'rosterPlayers'), (snapshot) => {
+  if (ignoreNextRoster) { ignoreNextRoster = false; return; }
+  const data = snapshot.val();
+  if (data) { rosterPlayers = data; }
+  else { rosterPlayers = JSON.parse(JSON.stringify(defaultRosterPlayers)); set(ref(db, 'rosterPlayers'), rosterPlayers); }
+  buildRoster();
+});
+
 // PAGE NAVIGATION
 window.showPage = function(page, pushState) {
   document.getElementById('page-home').style.display = 'none';
@@ -828,174 +996,6 @@ onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
 // MOBILE MENU
 
 
-
-// ROSTER DATA — seed values, used only the very first time /roster-players is empty in Firebase.
-// After that, the roster lives in Firebase at 'rosterPlayers' and syncs in real time.
-const defaultRosterPlayers = {
-  "adam-wilson":     { name: "Adam Wilson",     num: 32, pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
-  "caleb-smith":      { name: "Caleb Smith",     num: 10, pos: "Left Center",   pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  "cade-kyle":        { name: "Cade Kyle",       num: 42, pos: "Right Center",  pos2: "",              cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
-  "carson-wynn":      { name: "Carson Wynn",     num: 12, pos: "Catcher",       pos2: "",              cat: 2, thr: 2, ob: 1, pow: 2, run: 2 },
-  "chad-reeves":      { name: "Chad Reeves",     num: 3,  pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
-  "connor-thompson":  { name: "Connor Thompson", num: 11, pos: "1st Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  "cory-burket":      { name: "Cory Burket",     num: 1,  pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 2 },
-  "jared-macedo":     { name: "Jared Macedo",    num: 8,  pos: "Shortstop",     pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
-  "jesse-turk":       { name: "Jesse Turk",      num: 35, pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  "jesse-williams":   { name: "Jesse Williams",  num: 6,  pos: "3rd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
-  "joel-bauer":       { name: "Joel Bauer",      num: 22, pos: "Left Center",   pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
-  "josh-gershom":     { name: "Josh Gershom",    num: 17, pos: "Right Field",   pos2: "",              cat: 1, thr: 2, ob: 1, pow: 1, run: 2 },
-  "mark-felderman":   { name: "Mark Felderman",  num: 18, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 2, run: 3 },
-  "nate-newell":      { name: "Nate Newell",     num: 24, pos: "2nd Base",      pos2: "",              cat: 3, thr: 3, ob: 3, pow: 2, run: 3 },
-  "nick-keith":       { name: "Nick Keith",      num: 76, pos: "Right Center",  pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 2 },
-  "parker-wynn":      { name: "Parker Wynn",     num: 34, pos: "Outfield",      pos2: "",              cat: 1, thr: 1, ob: 1, pow: 2, run: 1 },
-  "rick-reeves":      { name: "Rick Reeves",     num: 33, pos: "Left Field",    pos2: "",              cat: 2, thr: 3, ob: 3, pow: 3, run: 3 },
-  "zach-blalack":     { name: "Zach Blalack",    num: 13, pos: "Catcher",       pos2: "",              cat: 1, thr: 1, ob: 1, pow: 1, run: 1 },
-};
-
-const ROSTER_POSITIONS = ["Pitcher","Catcher","1st Base","2nd Base","Shortstop","3rd Base","Left Field","Left Center","Right Center","Right Field","Outfield","Utility"];
-const ROSTER_SKILLS = [
-  { key: "cat", label: "Catch" },
-  { key: "thr", label: "Throw" },
-  { key: "ob",  label: "On Base" },
-  { key: "pow", label: "Power" },
-  { key: "run", label: "Speed" }
-];
-
-let rosterPlayers = {};       // live Firebase-synced roster, keyed by player id
-let ignoreNextRoster = false;
-let rosterEditId = null;      // id of player currently being edited; null = "add new"
-
-function rosterKeyFor(name) {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || ('player-' + Date.now());
-}
-
-function buildRoster() {
-  const grid = document.getElementById('roster-grid');
-  if (!grid) return;
-  const entries = Object.entries(rosterPlayers).sort((a,b) => a[1].name.localeCompare(b[1].name));
-  if (!entries.length) { grid.innerHTML = '<p style="color:#888;font-size:13px;text-align:center;padding:30px 0">No players yet. Add one above.</p>'; return; }
-  function sc(v) { return v === 3 ? 'skill-3' : v === 2 ? 'skill-2' : 'skill-1'; }
-  grid.innerHTML = entries.map(([id, p]) => {
-    const overall = p.cat + p.thr + p.ob + p.pow + p.run;
-    const pct = Math.round((overall / 15) * 100);
-    const posLabel = p.pos + (p.pos2 ? ' / ' + p.pos2 : '');
-    return '<div class="roster-card">' +
-      '<div class="roster-card-header">' +
-        '<div class="roster-number">#' + p.num + '</div>' +
-        '<div><div class="roster-name">' + p.name + '</div><div class="roster-pos">' + posLabel + '</div></div>' +
-        '<button class="roster-edit-btn" onclick="openRosterEditModal(\'' + id + '\')" aria-label="Edit player"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
-      '</div>' +
-      '<div class="skill-grid">' +
-        ROSTER_SKILLS.map(s => '<div class="skill-cell"><div class="skill-label">' + s.label + '</div><div class="skill-val ' + sc(p[s.key]) + '">' + p[s.key] + '</div></div>').join('') +
-      '</div>' +
-      '<div class="overall-bar">' +
-        '<span class="overall-label">Overall ' + overall + '/15</span>' +
-        '<div class="overall-track"><div class="overall-fill" style="width:' + pct + '%"></div></div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function saveRosterPlayers(desc) {
-  ignoreNextRoster = true;
-  set(ref(db, 'rosterPlayers'), rosterPlayers)
-    .then(() => { if (desc) logChange(desc); })
-    .catch(() => { console.log('Roster save failed'); });
-}
-
-function populateRosterSelects(selectedPos, selectedPos2) {
-  const posSel = document.getElementById('redit-pos');
-  const pos2Sel = document.getElementById('redit-pos2');
-  posSel.innerHTML = ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos?' selected':'')+'>'+p+'</option>').join('');
-  pos2Sel.innerHTML = '<option value="">&mdash; none &mdash;</option>' + ROSTER_POSITIONS.map(p => '<option value="'+p+'"'+(p===selectedPos2?' selected':'')+'>'+p+'</option>').join('');
-}
-
-function populateRosterSkills(player) {
-  const wrap = document.getElementById('redit-skills');
-  wrap.innerHTML = ROSTER_SKILLS.map(s => {
-    const val = player ? player[s.key] : 2;
-    return '<div class="redit-skill-row"><span>' + s.label + '</span><div class="redit-skill-picker" data-skill="' + s.key + '">' +
-      [1,2,3].map(v => '<button type="button" class="redit-skill-opt sel-' + v + (v===val?' active':'') + '" onclick="setRosterSkill(\''+s.key+'\','+v+',this)">' + v + '</button>').join('') +
-    '</div></div>';
-  }).join('');
-}
-window.setRosterSkill = function(key, val, btn) {
-  const picker = btn.closest('.redit-skill-picker');
-  picker.querySelectorAll('.redit-skill-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  picker.dataset.value = val;
-};
-function getRosterSkillValues() {
-  const vals = {};
-  document.querySelectorAll('#redit-skills .redit-skill-picker').forEach(p => {
-    vals[p.dataset.skill] = parseInt(p.dataset.value || p.querySelector('.redit-skill-opt.active')?.textContent || '2', 10);
-  });
-  return vals;
-}
-
-window.openRosterEditModal = function(id) {
-  rosterEditId = id;
-  const p = rosterPlayers[id];
-  document.getElementById('redit-title').textContent = 'Edit Player';
-  document.getElementById('redit-name').value = p.name;
-  document.getElementById('redit-num').value = p.num;
-  populateRosterSelects(p.pos, p.pos2 || '');
-  populateRosterSkills(p);
-  document.getElementById('redit-delete-btn').style.display = 'block';
-  document.getElementById('roster-edit-modal').style.display = 'flex';
-};
-window.openRosterAddModal = function() {
-  rosterEditId = null;
-  document.getElementById('redit-title').textContent = 'Add Player';
-  document.getElementById('redit-name').value = '';
-  document.getElementById('redit-num').value = '';
-  populateRosterSelects(ROSTER_POSITIONS[0], '');
-  populateRosterSkills(null);
-  document.getElementById('redit-delete-btn').style.display = 'none';
-  document.getElementById('roster-edit-modal').style.display = 'flex';
-};
-window.closeRosterEditModal = function() {
-  document.getElementById('roster-edit-modal').style.display = 'none';
-  rosterEditId = null;
-};
-window.saveRosterEdit = function() {
-  const name = document.getElementById('redit-name').value.trim();
-  const num = parseInt(document.getElementById('redit-num').value, 10);
-  if (!name) { alert('Please enter a name.'); return; }
-  if (isNaN(num)) { alert('Please enter a jersey number.'); return; }
-  const pos = document.getElementById('redit-pos').value;
-  const pos2 = document.getElementById('redit-pos2').value;
-  const skills = getRosterSkillValues();
-
-  if (rosterEditId) {
-    rosterPlayers[rosterEditId] = { name, num, pos, pos2, ...skills };
-    saveRosterPlayers('Edited ' + name + "'s roster info");
-  } else {
-    let id = rosterKeyFor(name);
-    if (rosterPlayers[id]) id = id + '-' + Date.now();
-    rosterPlayers[id] = { name, num, pos, pos2, ...skills };
-    saveRosterPlayers('Added ' + name + ' to the roster');
-  }
-  buildRoster();
-  window.closeRosterEditModal();
-};
-window.deleteRosterPlayer = function() {
-  if (!rosterEditId) return;
-  const p = rosterPlayers[rosterEditId];
-  if (!confirm('Remove ' + p.name + ' from the roster? This cannot be undone.')) return;
-  delete rosterPlayers[rosterEditId];
-  saveRosterPlayers('Removed ' + p.name + ' from the roster');
-  buildRoster();
-  window.closeRosterEditModal();
-};
-
-onValue(ref(db, 'rosterPlayers'), (snapshot) => {
-  if (ignoreNextRoster) { ignoreNextRoster = false; return; }
-  const data = snapshot.val();
-  if (data) { rosterPlayers = data; }
-  else { rosterPlayers = JSON.parse(JSON.stringify(defaultRosterPlayers)); set(ref(db, 'rosterPlayers'), rosterPlayers); }
-  buildRoster();
-});
 
 // Detect mobile
 function isMobile() {
