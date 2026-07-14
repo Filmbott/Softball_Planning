@@ -650,12 +650,15 @@ window.addEventListener('popstate', function(e) {
   window.showPage(page, false);
 });
 
-// On initial load, read URL and show correct page
+// On initial load, read URL and show correct page + trigger data loads
 (function() {
   const path = window.location.pathname.replace('/', '').trim();
   const validPages = ['home','batting','positions','field','schedule','standings','history'];
   const page = validPages.includes(path) ? path : 'home';
   window.showPage(page, false);
+  // Trigger data loads for pages that fetch live data
+  if (page === 'schedule') buildSchedule();
+  if (page === 'standings') loadStandings();
 })();
 
 // USERNAME
@@ -1175,6 +1178,13 @@ window.showPage = function(page, event) {
   if (page === 'standings') loadStandings();
   if (page === 'schedule') buildSchedule();
 };
+
+// Also handle popstate (back/forward) data loads
+window.addEventListener('popstate', function(e) {
+  const page = (e.state && e.state.page) ? e.state.page : 'home';
+  if (page === 'schedule') buildSchedule();
+  if (page === 'standings') loadStandings();
+});
 </script>
 </body>
 </html>
