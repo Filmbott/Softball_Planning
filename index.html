@@ -283,6 +283,12 @@
   .modal input:focus { border-color: #378ADD; }
   .modal-btn { width: 100%; padding: 11px; border-radius: 10px; border: none; background: #1a1a1a; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; }
   .modal-btn:hover { background: #333; }
+  .identity-modal { max-width: 380px; text-align: left; }
+  .identity-modal h2, .identity-modal p { text-align: left; }
+  .identity-role-row { display: flex; gap: 8px; }
+  .identity-role-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #ddd; background: #fafafa; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; font-family: inherit; }
+  .identity-role-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .identity-error { color: #A32D2D; font-size: 12px; margin-top: -8px; margin-bottom: 10px; }
 
   /* LEAGUE HOMEPAGE */
   #page-league-home { display: none; min-height: 100vh; align-items: center; justify-content: center; background: linear-gradient(160deg, #1c1c1c, #2e2e2e); }
@@ -381,24 +387,47 @@
     .bottom-nav { display: none; }
   }
 
-  @media (max-width: 768px) {
-    /* Hide coach-only elements on mobile */
-    .coach-only { display: none !important; }
-    /* Clean read-only batting list */
-    .bat-item { cursor: default !important; }
-    .drag-handle { display: none !important; }
+  /* VIEW-ONLY MODE — applied by role (not screen size): players, and anyone viewing a team
+     that isn't their own, get this regardless of device. */
+  .view-only-mode .coach-only { display: none !important; }
+  .view-only-mode .bat-item { cursor: default !important; }
+  .view-only-mode .drag-handle { display: none !important; }
+  .view-only-mode #nav-roster, .view-only-mode #nav-history, .view-only-mode #nav-positions { display: none !important; }
+  .view-only-banner {
+    display: none; background: #fff8e6; border: 1px solid #f3d98b; color: #7a5c0e;
+    font-size: 12.5px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;
   }
+  .view-only-mode .view-only-banner { display: block; }
 </style>
 </head>
 <body>
 
-<!-- Name modal -->
-<div class="modal-overlay" id="name-modal" style="display:none">
-  <div class="modal">
-    <h2>👋 What's your name?</h2>
-    <p>So we can track who makes changes to the roster.</p>
-    <input type="text" id="name-input" placeholder="e.g. Joel" maxlength="30"/>
-    <button class="modal-btn" onclick="saveName()">Let's go</button>
+<!-- Identity & role gate -->
+<div class="modal-overlay" id="identity-modal" style="display:none">
+  <div class="modal identity-modal">
+    <h2>👋 Welcome!</h2>
+    <p>Tell us who you are so we can track changes and show you the right view.</p>
+    <div class="redit-field">
+      <label>Name</label>
+      <input type="text" id="identity-name" placeholder="e.g. Joel Bauer" maxlength="60"/>
+    </div>
+    <div class="redit-field">
+      <label>Email</label>
+      <input type="email" id="identity-email" placeholder="e.g. joel@example.com" maxlength="100"/>
+    </div>
+    <div class="redit-field">
+      <label>I am a...</label>
+      <div class="identity-role-row">
+        <button type="button" class="identity-role-btn active" id="role-btn-player" onclick="selectIdentityRole('player')">Player / Parent</button>
+        <button type="button" class="identity-role-btn" id="role-btn-coach" onclick="selectIdentityRole('coach')">Coach</button>
+      </div>
+    </div>
+    <div class="redit-field" id="identity-password-field" style="display:none">
+      <label>Coach Password</label>
+      <input type="password" id="identity-password" placeholder="Password" maxlength="40"/>
+      <p class="identity-error" id="identity-password-error" style="display:none">That password isn't right — check with your league coordinator.</p>
+    </div>
+    <button class="modal-btn" onclick="submitIdentity()">Continue</button>
   </div>
 </div>
 
@@ -499,8 +528,9 @@
 <!-- BATTING ORDER -->
 <div id="page-batting" class="app-page">
   <p class="page-title">Batting Order</p>
+  <p class="view-only-banner">You're viewing in read-only mode. Coaches can drag to reorder and manage the lineup.</p>
   <div class="sync-bar coach-only"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Connecting...</span></div>
-  <div class="user-bar coach-only"><span>Editing as</span>&nbsp;<strong id="user-display">...</strong>&nbsp;<button onclick="changeName()">change</button></div>
+  <div class="user-bar coach-only"><span>Editing as</span>&nbsp;<strong id="user-display">...</strong>&nbsp;<button onclick="resetIdentity()">not you?</button></div>
   <p class="note coach-only">Drag to reorder. X to bench, + to bring back. All changes sync automatically.</p>
   <div class="add-row coach-only">
     <select id="add-select"><option value="">Add a player...</option></select>
@@ -851,6 +881,7 @@ function getRosterSkillValues() {
 }
 
 window.openRosterEditModal = function(id) {
+  if (!isCoachForCurrentTeam()) return;
   rosterEditId = id;
   const p = rosterPlayers[id];
   document.getElementById('redit-title').textContent = 'Edit Player';
@@ -862,6 +893,7 @@ window.openRosterEditModal = function(id) {
   document.getElementById('roster-edit-modal').style.display = 'flex';
 };
 window.openRosterAddModal = function() {
+  if (!isCoachForCurrentTeam()) return;
   rosterEditId = null;
   document.getElementById('redit-title').textContent = 'Add Player';
   document.getElementById('redit-name').value = '';
@@ -876,6 +908,7 @@ window.closeRosterEditModal = function() {
   rosterEditId = null;
 };
 window.saveRosterEdit = function() {
+  if (!isCoachForCurrentTeam()) return;
   const name = document.getElementById('redit-name').value.trim();
   const num = parseInt(document.getElementById('redit-num').value, 10);
   if (!name) { alert('Please enter a name.'); return; }
@@ -906,6 +939,7 @@ window.saveRosterEdit = function() {
   window.closeRosterEditModal();
 };
 window.deleteRosterPlayer = function() {
+  if (!isCoachForCurrentTeam()) return;
   if (!rosterEditId) return;
   const p = rosterPlayers[rosterEditId];
   if (!confirm('Remove ' + p.name + ' from the roster? This will also remove them from the batting order and any position assignments. This cannot be undone.')) return;
@@ -976,6 +1010,8 @@ async function migrateLegacyGCCDataIfNeeded() {
 
 // PAGE NAVIGATION
 window.showPage = function(page, pushState) {
+  const coachOnlyPages = ['roster', 'positions', 'history'];
+  if (coachOnlyPages.includes(page) && !isCoachForCurrentTeam()) page = 'home';
   document.getElementById('page-home').style.display = 'none';
   document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
@@ -1077,29 +1113,70 @@ async function bootstrapApp() {
 }
 bootstrapApp();
 
-// USERNAME
-let userName = localStorage.getItem('softball_username') || '';
-const modal = document.getElementById('name-modal');
-const nameInput = document.getElementById('name-input');
-function checkName() {
-  if (isMobile()) {
-    modal.style.display = 'none';
-    return;
-  }
-  if (!userName) { modal.style.display = 'flex'; setTimeout(() => nameInput.focus(), 100); }
-  else { modal.style.display = 'none'; updateUserDisplays(); }
+// IDENTITY & ROLE GATE
+// Identity (name/email/role) is captured once per browser, the first time any team page is
+// visited. Whichever team that happens on becomes this browser's "home team." Coach edit
+// rights only ever apply on that home team — every other team is always read-only, no
+// re-prompting needed. This is a soft, trust-based gate (no real login), same spirit as the
+// rest of the app, but it adds real accountability (name+email) and a shared password for coaches.
+const COACH_PASSWORD = 'Coach26';
+let identity = null;
+let userName = '';
+
+function loadIdentity() {
+  try { identity = JSON.parse(localStorage.getItem('ecs_identity') || 'null'); } catch (e) { identity = null; }
+  userName = identity ? identity.name : '';
+}
+function isCoachForCurrentTeam() {
+  return !!(identity && identity.role === 'coach' && identity.homeTeamSlug === TEAM_SLUG);
 }
 function updateUserDisplays() {
-  document.getElementById('user-display').textContent = userName;
-  document.getElementById('user-display2').textContent = userName;
+  const d1 = document.getElementById('user-display'); if (d1) d1.textContent = userName;
+  const d2 = document.getElementById('user-display2'); if (d2) d2.textContent = userName;
 }
-window.saveName = function() {
-  const v = nameInput.value.trim(); if (!v) return;
-  userName = v; localStorage.setItem('softball_username', userName);
-  modal.style.display = 'none'; updateUserDisplays();
+function applyRoleView() {
+  document.body.classList.toggle('view-only-mode', !isCoachForCurrentTeam());
+  updateUserDisplays();
+}
+window.selectIdentityRole = function(role) {
+  document.getElementById('role-btn-player').classList.toggle('active', role === 'player');
+  document.getElementById('role-btn-coach').classList.toggle('active', role === 'coach');
+  document.getElementById('identity-password-field').style.display = role === 'coach' ? 'block' : 'none';
+  document.getElementById('identity-password-error').style.display = 'none';
+  document.getElementById('identity-modal').dataset.role = role;
 };
-window.changeName = function() { nameInput.value = userName; modal.style.display = 'flex'; nameInput.focus(); };
-nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.saveName(); });
+window.submitIdentity = function() {
+  const name = document.getElementById('identity-name').value.trim();
+  const email = document.getElementById('identity-email').value.trim();
+  const role = document.getElementById('identity-modal').dataset.role || 'player';
+  if (!name || !email) { alert('Please enter your name and email.'); return; }
+  if (role === 'coach') {
+    const pw = document.getElementById('identity-password').value;
+    if (pw !== COACH_PASSWORD) {
+      document.getElementById('identity-password-error').style.display = 'block';
+      return;
+    }
+  }
+  identity = { name, email, role, homeTeamSlug: TEAM_SLUG };
+  localStorage.setItem('ecs_identity', JSON.stringify(identity));
+  userName = name;
+  document.getElementById('identity-modal').style.display = 'none';
+  applyRoleView();
+  buildBatList();
+};
+window.resetIdentity = function() {
+  if (!confirm("Reset your identity on this device? You'll be asked to identify yourself again next time.")) return;
+  localStorage.removeItem('ecs_identity');
+  window.location.reload();
+};
+function checkIdentityGate() {
+  loadIdentity();
+  applyRoleView();
+  if (!identity) {
+    document.getElementById('identity-modal').dataset.role = 'player';
+    document.getElementById('identity-modal').style.display = 'flex';
+  }
+}
 
 // SYNC STATUS
 function setSyncStatus(status, text) {
@@ -1274,6 +1351,7 @@ function applyRevert(entry) {
 // during one session, stepping backward through them most-recent-first. Changes they made to
 // other tabs, and anyone else's changes, are left alone.
 window.revertSessionCategory = function(sessionIdx, domain) {
+  if (!isCoachForCurrentTeam()) return;
   const session = historySessions[sessionIdx];
   if (!session) return;
   const meta = CATEGORY_META[domain];
@@ -1283,7 +1361,7 @@ window.revertSessionCategory = function(sessionIdx, domain) {
   touching.forEach(e => applyRevert(e));
 };
 
-window.clearHistory = function() { if (confirm('Clear all history? This cannot be undone.')) remove(ref(db, TEAM_PATH + '/history')); };
+window.clearHistory = function() { if (!isCoachForCurrentTeam()) return; if (confirm('Clear all history? This cannot be undone.')) remove(ref(db, TEAM_PATH + '/history')); };
 
 // SAVE
 function saveToFirebase() {
@@ -1313,7 +1391,7 @@ function buildBatList() {
   const list = document.getElementById('bat-list'); list.innerHTML = '';
   state.order.forEach((name, i) => {
     const li = document.createElement('li');
-    li.className = 'bat-item'; li.draggable = true; li.dataset.name = name;
+    li.className = 'bat-item'; li.draggable = isCoachForCurrentTeam(); li.dataset.name = name;
     li.innerHTML = '<span class="drag-handle coach-only">⠿</span><span class="bat-num">'+(i+1)+'.</span><span class="bat-name">'+name+'<span class="bat-jersey">#'+allPlayers[name]+'</span></span><button class="icon-btn remove coach-only" onclick="removePlayer(\''+name+'\')">✕</button>';
     li.addEventListener('dragstart', e => { dragSrc=li; li.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
     li.addEventListener('dragend', () => { li.classList.remove('dragging'); document.querySelectorAll('.bat-item').forEach(x=>x.classList.remove('drag-over')); });
@@ -1321,7 +1399,7 @@ function buildBatList() {
     li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
     li.addEventListener('drop', e => {
       e.preventDefault();
-      if (dragSrc && dragSrc !== li) {
+      if (dragSrc && dragSrc !== li && isCoachForCurrentTeam()) {
         const items = [...list.querySelectorAll('.bat-item')];
         const fi = items.indexOf(dragSrc), ti = items.indexOf(li);
         const moved = state.order[fi];
@@ -1343,12 +1421,14 @@ function buildBenchList() {
   });
 }
 window.removePlayer = function(name) {
+  if (!isCoachForCurrentTeam()) return;
   const fromIndex = state.order.indexOf(name);
   state.order=state.order.filter(n=>n!==name); state.bench.push(name);
   buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase();
   logChange('Benched '+name, 'batting', { type: 'bench', player: name, fromIndex });
 };
 window.restorePlayer = function(name) {
+  if (!isCoachForCurrentTeam()) return;
   state.bench=state.bench.filter(n=>n!==name); state.order.push(name);
   buildBatList(); buildBenchList(); buildAddSelect(); saveToFirebase();
   logChange('Added '+name+' back to batting order', 'batting', { type: 'restore', player: name });
@@ -1369,6 +1449,7 @@ function buildPosGrid() {
   buildChips();
 }
 window.updatePos = function(i,field,value,posLabel) {
+  if (!isCoachForCurrentTeam()) return;
   const old=state.positions[i][field]||'';
   state.positions[i][field]=value;
   buildChips(); updateDiagram();
@@ -1385,7 +1466,7 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
-if (TEAM_SLUG) checkName();
+if (TEAM_SLUG) checkIdentityGate();
 
 // RESCHEDULED WEEKS — manually flagged (week numbers that are rescheduled)
 const rescheduledWeeks = [2, 5];
