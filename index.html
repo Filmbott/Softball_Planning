@@ -3,31 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>GCC Softball</title>
-<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png"/>
-<script>
-  // Dynamically generate favicon with white circle background
-  (function() {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 64; canvas.height = 64;
-      const ctx = canvas.getContext('2d');
-      // Draw white circle
-      ctx.beginPath();
-      ctx.arc(32, 32, 32, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      // Draw logo on top
-      ctx.drawImage(img, 0, 0, 64, 64);
-      // Set as favicon
-      const link = document.querySelector("link[rel='icon']");
-      if (link) link.href = canvas.toDataURL('image/png');
-    };
-    img.src = 'https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png';
-  })();
-</script>
+<title>ECS League</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
@@ -70,6 +46,11 @@
   }
   .nav-links a:hover { color: #fff; }
   .nav-links a.active { color: #fff; border-bottom-color: rgba(255,255,255,0.6); }
+  .nav-league-link {
+    color: rgba(255,255,255,0.55); text-decoration: none; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-left: 20px; white-space: nowrap;
+  }
+  .nav-league-link:hover { color: #fff; }
 
   /* HOME */
   #page-home { display: block; }
@@ -83,6 +64,7 @@
     background-size: cover; background-position: center;
     background-color: #1a1a1a;
   }
+  .hero-bg.plain { background-image: none; background: linear-gradient(160deg, #1c1c1c, #2e2e2e); }
   .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.12); }
   .hero-content {
     position: absolute;
@@ -302,6 +284,19 @@
   .modal-btn { width: 100%; padding: 11px; border-radius: 10px; border: none; background: #1a1a1a; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; }
   .modal-btn:hover { background: #333; }
 
+  /* LEAGUE HOMEPAGE */
+  #page-league-home { display: none; min-height: 100vh; align-items: center; justify-content: center; background: linear-gradient(160deg, #1c1c1c, #2e2e2e); }
+  .league-home-wrap { width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .league-home-inner { max-width: 480px; width: 100%; text-align: center; }
+  .league-title { color: #fff; font-size: clamp(28px, 5vw, 44px); font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+  .league-sub { color: rgba(255,255,255,0.65); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+  .league-picker { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+  .league-picker select { font-size: 15px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff; font-family: inherit; }
+  .league-picker select option { color: #1a1a1a; }
+  .league-go-btn { font-size: 14px; padding: 12px; border-radius: 10px; border: none; background: #fff; color: #1a1a1a; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .league-go-btn:hover { background: #eee; }
+  .league-note { color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.5; }
+
   /* ============ MOBILE RESPONSIVE ============ */
   @media (max-width: 768px) {
 
@@ -439,10 +434,13 @@
   </div>
 </div>
 
+<!-- Everything below is the per-team app. It's hidden entirely on the league homepage. -->
+<div id="team-app-root" style="display:none">
+
 <!-- NAV -->
 <nav>
-  <div class="nav-logo-wrap">
-    <img class="nav-logo" src="https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png" alt="GCC Softball logo"/>
+  <div class="nav-logo-wrap" id="nav-logo-wrap">
+    <img class="nav-logo" src="https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png" alt="Team logo"/>
   </div>
   <ul class="nav-links">
     <li><a onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
@@ -454,7 +452,7 @@
     <li><a onclick="showPage('roster')" id="nav-roster">Roster</a></li>
     <li><a onclick="showPage('history')" id="nav-history">History</a></li>
   </ul>
-
+  <a class="nav-league-link" href="/" title="Back to league homepage">&larr; All Teams</a>
 </nav>
 
 
@@ -488,10 +486,10 @@
 <!-- HOME -->
 <div id="page-home">
   <div class="hero">
-    <div class="hero-bg"></div>
+    <div class="hero-bg" id="hero-bg"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <h1 class="hero-church">Gospel Community<span class="church-break"><br></span><span class="church-space"> </span>Church Eugene</h1>
+      <h1 class="hero-church" id="hero-team-name"></h1>
       <span class="hero-softball">SOFTBALL</span>
     </div>
 
@@ -608,9 +606,29 @@
   </ul>
 </div>
 
+</div>
+<!-- end team-app-root -->
+
+<!-- LEAGUE HOMEPAGE -->
+<div id="page-league-home">
+  <div class="league-home-wrap">
+    <div class="league-home-inner">
+      <h1 class="league-title">Eugene Church<br/>Softball League</h1>
+      <p class="league-sub">Select your team to view its roster, lineup, schedule, and standings.</p>
+      <div class="league-picker">
+        <select id="league-team-select">
+          <option value="">Loading teams…</option>
+        </select>
+        <button class="league-go-btn" onclick="goToSelectedTeam()">View Team</button>
+      </div>
+      <p class="league-note">Coaches: use the link sent to you to manage your team directly. Anyone can look up a team here to view it.</p>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, update, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDlhaZ8hM6GNbaUHJjmoMxRz8RzQHENBas",
@@ -625,30 +643,95 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const allPlayers = {
-  "Jesse Williams": 6, "Caleb Smith": 10, "Jared Macedo": 8,
-  "Rick Reeves": 33, "Mark Felderman": 18, "Nate Newell": 24,
-  "Chad Reeves": 3, "Cade Kyle": 42, "Cory Burket": 1,
-  "Parker Wynn": 34, "Zach Blalack": 13, "Carson Wynn": 12,
-  "Josh Gershom": 17, "Adam Wilson": 32, "Nick Keith": 76,
-  "Jesse Turk": 35, "Joel Bauer": 22, "Connor Thompson": 11
-};
-const allNames = Object.keys(allPlayers);
+// MULTI-TEAM SUPPORT
+// Every team's data lives under teams/{slug}/... in Firebase, fully isolated from other teams.
+// TEAM_SLUG/TEAM_NAME/TEAM_PATH are resolved during bootstrap from the URL + the league's team list.
+let TEAM_SLUG = null;
+let TEAM_NAME = null;
+let TEAM_PATH = null;
+let teamRegistry = []; // [{ name, slug }] — every team in the league, pulled from the Standings sheet
+
+function slugify(str) {
+  return (str || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function isGCC(name) {
+  const n = (name || '').toLowerCase();
+  return n.includes('gospel') || n.includes('gcc');
+}
+// Sets the browser tab title and favicon for the current context. GCC keeps its round logo
+// favicon (matching its custom branding); every other team, and the league homepage, just get
+// a plain title with no custom icon.
+const ECS_FAVICON_DATA_URL = "data:image/png;base64,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";
+
+function getFaviconLink() {
+  let link = document.querySelector("link[rel='icon']");
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    document.head.appendChild(link);
+  }
+  return link;
+}
+function updatePageChrome(teamName) {
+  document.title = teamName ? teamName + ' Softball' : 'ECS League';
+  if (teamName && isGCC(teamName)) {
+    const link = getFaviconLink();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(32, 32, 32, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.drawImage(img, 0, 0, 64, 64);
+      link.href = canvas.toDataURL('image/png');
+    };
+    img.src = 'https://raw.githubusercontent.com/Filmbott/Softball_Planning/main/Logo.png';
+  } else {
+    // League homepage and every other team: the ECS league mark on a black background
+    getFaviconLink().href = ECS_FAVICON_DATA_URL;
+  }
+}
+// Matches a schedule/standings cell against whichever team is currently active. Handles
+// exact matches, GCC's various abbreviations, and loose substring matches as a fallback.
+function isTeamCell(cellText) {
+  const c = (cellText || '').toLowerCase().trim();
+  const t = (TEAM_NAME || '').toLowerCase().trim();
+  if (!c || !t) return false;
+  if (c === t) return true;
+  if (isGCC(TEAM_NAME) && (c.includes('gospel') || c === 'gcc')) return true;
+  return c.includes(t) || t.includes(c);
+}
+
+// Roster-driven player list — used by Batting Order (add-select, jersey lookups) and Position
+// Editor (assignment dropdowns). This is recomputed from the live Roster tab data any time it
+// changes, so those tabs can never drift out of sync with the actual roster.
+let allPlayers = {};
+let allNames = [];
+function refreshAllPlayersFromRoster() {
+  allPlayers = {};
+  Object.values(rosterPlayers).forEach(p => { allPlayers[p.name] = p.num; });
+  allNames = Object.keys(allPlayers);
+}
 
 const defaultState = {
-  order: ["Jesse Williams","Jared Macedo","Rick Reeves","Caleb Smith","Mark Felderman","Nate Newell","Chad Reeves","Cade Kyle","Cory Burket","Parker Wynn","Zach Blalack"],
-  bench: ["Carson Wynn","Josh Gershom","Adam Wilson","Nick Keith","Jesse Turk","Joel Bauer","Connor Thompson"],
+  order: [],
+  bench: [],
   positions: [
-    { key:"P",  label:"Pitcher",      primary:"Cory Burket",    backup:"" },
-    { key:"C",  label:"Catcher",      primary:"Cade Kyle",      backup:"" },
-    { key:"1B", label:"1st base",     primary:"Jesse Williams", backup:"" },
-    { key:"2B", label:"2nd base",     primary:"Chad Reeves",    backup:"Nate Newell" },
-    { key:"SS", label:"Shortstop",    primary:"Jared Macedo",   backup:"" },
-    { key:"3B", label:"3rd base",     primary:"Rick Reeves",    backup:"Adam Wilson" },
-    { key:"LF", label:"Left field",   primary:"Mark Felderman", backup:"" },
-    { key:"LC", label:"Left center",  primary:"Caleb Smith",    backup:"" },
-    { key:"RC", label:"Right center", primary:"Parker Wynn",    backup:"" },
-    { key:"RF", label:"Right field",  primary:"Zach Blalack",   backup:"Nate Newell" }
+    { key:"P",  label:"Pitcher",      primary:"", backup:"" },
+    { key:"C",  label:"Catcher",      primary:"", backup:"" },
+    { key:"1B", label:"1st base",     primary:"", backup:"" },
+    { key:"2B", label:"2nd base",     primary:"", backup:"" },
+    { key:"SS", label:"Shortstop",    primary:"", backup:"" },
+    { key:"3B", label:"3rd base",     primary:"", backup:"" },
+    { key:"LF", label:"Left field",   primary:"", backup:"" },
+    { key:"LC", label:"Left center",  primary:"", backup:"" },
+    { key:"RC", label:"Right center", primary:"", backup:"" },
+    { key:"RF", label:"Right field",  primary:"", backup:"" }
   ]
 };
 
@@ -657,9 +740,15 @@ let ignoreNext = false;
 let saveTimeout = null;
 let dragSrc = null;
 
-// ROSTER DATA — seed values, used only the very first time 'rosterPlayers' is empty in Firebase.
-// After that, the roster lives in Firebase at 'rosterPlayers' and syncs in real time.
-const defaultRosterPlayers = {
+// ROSTER DATA — new teams start with an empty roster; the coach builds it from scratch.
+const defaultRosterPlayers = {};
+
+// GCC already had a full season of real data living at the old, un-namespaced Firebase paths
+// (roster / rosterPlayers / history at the database root). migrateLegacyGCCDataIfNeeded() copies
+// that over to teams/{gcc-slug}/... the first time GCC's team page loads under the new structure.
+// This hardcoded copy is only a fallback safety net in the unlikely case that live migration
+// fetch comes back empty.
+const gccLegacySeed = {
   "adam-wilson":     { name: "Adam Wilson",     num: 32, pos: "Pitcher",       pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 2 },
   "caleb-smith":      { name: "Caleb Smith",     num: 10, pos: "Left Center",   pos2: "",              cat: 3, thr: 3, ob: 3, pow: 3, run: 3 },
   "cade-kyle":        { name: "Cade Kyle",       num: 42, pos: "Right Center",  pos2: "",              cat: 2, thr: 2, ob: 3, pow: 3, run: 2 },
@@ -726,7 +815,7 @@ function buildRoster() {
 
 function saveRosterPlayers() {
   ignoreNextRoster = true;
-  set(ref(db, 'rosterPlayers'), rosterPlayers)
+  set(ref(db, TEAM_PATH + '/rosterPlayers'), rosterPlayers)
     .then(() => {})
     .catch(() => { console.log('Roster save failed'); });
 }
@@ -812,28 +901,78 @@ window.saveRosterEdit = function() {
   }
   saveRosterPlayers();
   logChange(desc, 'players', domainPatch);
-  buildRoster();
+  refreshAllPlayersFromRoster();
+  buildRoster(); buildAddSelect(); buildBatList(); buildBenchList(); buildPosGrid(); buildChips(); updateDiagram();
   window.closeRosterEditModal();
 };
 window.deleteRosterPlayer = function() {
   if (!rosterEditId) return;
   const p = rosterPlayers[rosterEditId];
-  if (!confirm('Remove ' + p.name + ' from the roster? This cannot be undone.')) return;
+  if (!confirm('Remove ' + p.name + ' from the roster? This will also remove them from the batting order and any position assignments. This cannot be undone.')) return;
   const beforePlayer = JSON.parse(JSON.stringify(p));
   delete rosterPlayers[rosterEditId];
   saveRosterPlayers();
+
+  // Cascade: this player can no longer appear in the batting order or be assigned to a position.
+  state.order = state.order.filter(n => n !== p.name);
+  state.bench = state.bench.filter(n => n !== p.name);
+  state.positions.forEach(pos => {
+    if (pos.primary === p.name) pos.primary = '';
+    if (pos.backup === p.name) pos.backup = '';
+  });
+  saveToFirebase();
+
   logChange('Removed ' + p.name + ' from the roster', 'players', { type: 'delete', id: rosterEditId, before: beforePlayer });
-  buildRoster();
+  refreshAllPlayersFromRoster();
+  buildRoster(); buildAddSelect(); buildBatList(); buildBenchList(); buildPosGrid(); buildChips(); updateDiagram();
   window.closeRosterEditModal();
 };
 
-onValue(ref(db, 'rosterPlayers'), (snapshot) => {
-  if (ignoreNextRoster) { ignoreNextRoster = false; return; }
-  const data = snapshot.val();
-  if (data) { rosterPlayers = data; }
-  else { rosterPlayers = JSON.parse(JSON.stringify(defaultRosterPlayers)); set(ref(db, 'rosterPlayers'), rosterPlayers); }
-  buildRoster();
-});
+// FIREBASE — registers all three per-team listeners at once. Called only after TEAM_PATH is
+// known (i.e. once bootstrapApp() has resolved which team we're looking at).
+function initTeamListeners() {
+  onValue(ref(db, TEAM_PATH + '/rosterPlayers'), (snapshot) => {
+    if (ignoreNextRoster) { ignoreNextRoster = false; return; }
+    const data = snapshot.val();
+    if (data) { rosterPlayers = data; }
+    else { rosterPlayers = JSON.parse(JSON.stringify(defaultRosterPlayers)); set(ref(db, TEAM_PATH + '/rosterPlayers'), rosterPlayers); }
+    refreshAllPlayersFromRoster();
+    buildRoster(); buildAddSelect(); buildBatList(); buildBenchList(); buildPosGrid(); buildChips(); updateDiagram();
+  });
+
+  onValue(ref(db, TEAM_PATH + '/roster'), (snapshot) => {
+    if (ignoreNext) { ignoreNext=false; return; }
+    const data = snapshot.val();
+    if (data) { state=data; if(!state.positions||state.positions.length!==defaultState.positions.length) state.positions=defaultState.positions; }
+    else { state=JSON.parse(JSON.stringify(defaultState)); set(ref(db, TEAM_PATH + '/roster'),state); }
+    setSyncStatus('connected','Connected — changes sync in real time');
+    buildBatList(); buildBenchList(); buildAddSelect(); buildPosGrid(); updateDiagram();
+  }, () => { setSyncStatus('error','Connection error'); });
+
+  onValue(ref(db, TEAM_PATH + '/history'), (snapshot) => { buildHistoryList(snapshot.val()); });
+}
+
+// GCC had a full season of real data at the old, un-namespaced root paths. Copy it over to
+// teams/{slug}/... exactly once, the first time GCC's team page loads under the new structure.
+async function migrateLegacyGCCDataIfNeeded() {
+  if (!isGCC(TEAM_NAME)) return;
+  try {
+    const targetSnap = await get(ref(db, TEAM_PATH + '/roster'));
+    if (targetSnap.exists()) return; // already migrated, nothing to do
+    const [legacyRoster, legacyPlayers, legacyHistory] = await Promise.all([
+      get(ref(db, 'roster')),
+      get(ref(db, 'rosterPlayers')),
+      get(ref(db, 'history'))
+    ]);
+    const updates = {};
+    updates[TEAM_PATH + '/roster'] = legacyRoster.exists() ? legacyRoster.val() : defaultState;
+    updates[TEAM_PATH + '/rosterPlayers'] = legacyPlayers.exists() ? legacyPlayers.val() : gccLegacySeed;
+    if (legacyHistory.exists()) updates[TEAM_PATH + '/history'] = legacyHistory.val();
+    await update(ref(db), updates);
+  } catch (err) {
+    console.log('GCC legacy migration failed:', err.message);
+  }
+}
 
 // PAGE NAVIGATION
 window.showPage = function(page, pushState) {
@@ -857,28 +996,86 @@ window.showPage = function(page, pushState) {
   if (bnavEl) bnavEl.classList.add('active');
   // Update browser URL (skip on initial load)
   if (pushState !== false) {
-    const url = page === 'home' ? '/' : '/' + page;
-    window.history.pushState({ page }, '', url);
+    const url = page === 'home' ? '/team/' + TEAM_SLUG : '/team/' + TEAM_SLUG + '/' + page;
+    window.history.pushState({ team: TEAM_SLUG, page }, '', url);
   }
-};
-
-// Handle browser back/forward buttons
-window.addEventListener('popstate', function(e) {
-  const page = (e.state && e.state.page) ? e.state.page : 'home';
-  window.showPage(page, false);
-});
-
-// On initial load, read URL and show correct page + trigger data loads
-(function() {
-  const path = window.location.pathname.replace('/', '').trim();
-  const validPages = ['home','batting','positions','field','schedule','standings','history','roster'];
-  const page = validPages.includes(path) ? path : 'home';
-  window.showPage(page, false);
   // Trigger data loads for pages that fetch live data
   if (page === 'schedule') buildSchedule();
   if (page === 'standings') loadStandings();
   if (page === 'roster') buildRoster();
-})();
+};
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', function(e) {
+  const parsed = parseLocation();
+  if (parsed.mode !== 'team' || parsed.slug !== TEAM_SLUG) {
+    // Crossed a team boundary (e.g. back to the league homepage, or a different team) —
+    // simplest and safest to do a clean reload rather than tear down live listeners in place.
+    window.location.reload();
+    return;
+  }
+  window.showPage(parsed.page, false);
+});
+
+function parseLocation() {
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  if (segments[0] === 'team' && segments[1]) {
+    return { mode: 'team', slug: segments[1], page: segments[2] || 'home' };
+  }
+  return { mode: 'home' };
+}
+
+window.goToSelectedTeam = function() {
+  const slug = document.getElementById('league-team-select').value;
+  if (!slug) return;
+  window.location.href = '/team/' + slug;
+};
+
+async function renderLeagueHome() {
+  document.getElementById('team-app-root').style.display = 'none';
+  document.getElementById('page-league-home').style.display = 'flex';
+  updatePageChrome(null);
+  if (!teamRegistry.length) teamRegistry = await fetchTeamRegistry();
+  const sel = document.getElementById('league-team-select');
+  if (teamRegistry.length) {
+    sel.innerHTML = '<option value="">Select your team…</option>' + teamRegistry.map(t => '<option value="'+t.slug+'">'+t.name+'</option>').join('');
+  } else {
+    sel.innerHTML = '<option value="">Team list unavailable — try again shortly</option>';
+  }
+}
+
+async function initTeamApp(initialPage) {
+  document.getElementById('page-league-home').style.display = 'none';
+  document.getElementById('team-app-root').style.display = 'block';
+
+  if (!teamRegistry.length) teamRegistry = await fetchTeamRegistry();
+  const match = teamRegistry.find(t => t.slug === TEAM_SLUG);
+  TEAM_NAME = match ? match.name : TEAM_SLUG.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  TEAM_PATH = 'teams/' + TEAM_SLUG;
+
+  document.getElementById('hero-team-name').textContent = TEAM_NAME;
+  document.getElementById('nav-logo-wrap').style.display = isGCC(TEAM_NAME) ? 'flex' : 'none';
+  document.getElementById('hero-bg').classList.toggle('plain', !isGCC(TEAM_NAME));
+  updatePageChrome(TEAM_NAME);
+
+  await migrateLegacyGCCDataIfNeeded();
+  initTeamListeners();
+
+  const validPages = ['home','batting','positions','field','schedule','standings','history','roster'];
+  const page = validPages.includes(initialPage) ? initialPage : 'home';
+  window.showPage(page, false);
+}
+
+async function bootstrapApp() {
+  const parsed = parseLocation();
+  if (parsed.mode === 'team') {
+    TEAM_SLUG = parsed.slug;
+    await initTeamApp(parsed.page);
+  } else {
+    await renderLeagueHome();
+  }
+}
+bootstrapApp();
 
 // USERNAME
 let userName = localStorage.getItem('softball_username') || '';
@@ -917,7 +1114,7 @@ function logChange(desc, domain, patch) {
   const entry = { who: userName || 'Someone', what: desc, when: Date.now() };
   if (domain) entry.domain = domain;
   if (patch) entry.patch = patch;
-  push(ref(db, 'history'), entry);
+  push(ref(db, TEAM_PATH + '/history'), entry);
 }
 function formatTime(ts) {
   const diff = Date.now() - ts;
@@ -1050,18 +1247,26 @@ function applyRevert(entry) {
     if (p.type === 'edit') {
       const cur = rosterPlayers[p.id] ? JSON.parse(JSON.stringify(rosterPlayers[p.id])) : null;
       rosterPlayers[p.id] = JSON.parse(JSON.stringify(p.before));
-      saveRosterPlayers(); buildRoster();
+      saveRosterPlayers();
       logChange('Reverted: ' + entry.what, 'players', { type: 'edit', id: p.id, before: cur || p.before });
     } else if (p.type === 'add') {
       const cur = rosterPlayers[p.id] ? JSON.parse(JSON.stringify(rosterPlayers[p.id])) : null;
       delete rosterPlayers[p.id];
-      saveRosterPlayers(); buildRoster();
-      if (cur) logChange('Reverted: ' + entry.what, 'players', { type: 'delete', id: p.id, before: cur });
+      saveRosterPlayers();
+      if (cur) {
+        state.order = state.order.filter(n => n !== cur.name);
+        state.bench = state.bench.filter(n => n !== cur.name);
+        state.positions.forEach(pos => { if (pos.primary === cur.name) pos.primary=''; if (pos.backup === cur.name) pos.backup=''; });
+        saveToFirebase();
+        logChange('Reverted: ' + entry.what, 'players', { type: 'delete', id: p.id, before: cur });
+      }
     } else if (p.type === 'delete') {
       rosterPlayers[p.id] = JSON.parse(JSON.stringify(p.before));
-      saveRosterPlayers(); buildRoster();
+      saveRosterPlayers();
       logChange('Reverted: ' + entry.what, 'players', { type: 'add', id: p.id });
     }
+    refreshAllPlayersFromRoster();
+    buildRoster(); buildAddSelect(); buildBatList(); buildBenchList(); buildPosGrid(); buildChips(); updateDiagram();
   }
 }
 
@@ -1078,7 +1283,7 @@ window.revertSessionCategory = function(sessionIdx, domain) {
   touching.forEach(e => applyRevert(e));
 };
 
-window.clearHistory = function() { if (confirm('Clear all history? This cannot be undone.')) remove(ref(db,'history')); };
+window.clearHistory = function() { if (confirm('Clear all history? This cannot be undone.')) remove(ref(db, TEAM_PATH + '/history')); };
 
 // SAVE
 function saveToFirebase() {
@@ -1086,7 +1291,7 @@ function saveToFirebase() {
   setSyncStatus('syncing', 'Saving...');
   saveTimeout = setTimeout(() => {
     ignoreNext = true;
-    set(ref(db,'roster'), state)
+    set(ref(db, TEAM_PATH + '/roster'), state)
       .then(() => setSyncStatus('connected','All changes saved'))
       .catch(() => setSyncStatus('error','Save failed'));
   }, 600);
@@ -1171,18 +1376,6 @@ window.updatePos = function(i,field,value,posLabel) {
   logChange((value?'Set '+value+' as '+field:'Cleared '+field)+' at '+posLabel+' (was '+(old||'none')+')', 'positions', { type: 'setPos', posIndex: i, field, oldValue: old, newValue: value, posLabel });
 };
 
-// FIREBASE
-onValue(ref(db,'roster'), (snapshot) => {
-  if (ignoreNext) { ignoreNext=false; return; }
-  const data = snapshot.val();
-  if (data) { state=data; if(!state.positions||state.positions.length!==defaultState.positions.length) state.positions=defaultState.positions; }
-  else { state=JSON.parse(JSON.stringify(defaultState)); set(ref(db,'roster'),state); }
-  setSyncStatus('connected','Connected — changes sync in real time');
-  buildBatList(); buildBenchList(); buildAddSelect(); buildPosGrid(); updateDiagram();
-}, () => { setSyncStatus('error','Connection error'); });
-
-onValue(ref(db,'history'), (snapshot) => { buildHistoryList(snapshot.val()); });
-
 // MOBILE MENU
 
 
@@ -1192,7 +1385,7 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
-checkName();
+if (TEAM_SLUG) checkName();
 
 // RESCHEDULED WEEKS — manually flagged (week numbers that are rescheduled)
 const rescheduledWeeks = [2, 5];
@@ -1248,14 +1441,14 @@ async function buildSchedule() {
       const makeupNote = isMakeup ? '<span class="makeup-note">(makeup game)</span>' : '';
       const dateStr = gameDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       // Determine opponent and home/away indicator
-      const isGccAway = g.away.toLowerCase().includes('gospel');
+      const isTeamAway = isTeamCell(g.away);
       const isPlayoffRow = g.away.toLowerCase().includes('playoff') || g.away.toLowerCase().includes('championship') || g.away.toLowerCase().includes('makeup');
       let opponent = '';
       let homeAway = '';
       if (isPlayoffRow) {
         opponent = g.away;
         homeAway = '—';
-      } else if (isGccAway) {
+      } else if (isTeamAway) {
         opponent = g.home || '—';
         homeAway = '@ ' + (g.home || '');
       } else {
@@ -1323,11 +1516,11 @@ async function buildSchedule() {
         }
       }
 
-      // Check if this row contains Gospel CC
+      // Check if this row contains our current team
       for (let ci = 0; ci < row.length; ci++) {
         const cell = row[ci].trim();
-        if (cell.toLowerCase().includes('gospel cc') || cell.toLowerCase() === 'gospel cc') {
-          // Found Gospel CC — look for time, opponent, and date context
+        if (isTeamCell(cell)) {
+          // Found our team — look for time, opponent, and date context
           // Time is usually in the cell before or at start of this row chunk
           // Opponent is usually 2 cells away (time, away, @, home pattern)
           
@@ -1405,7 +1598,7 @@ async function buildSchedule() {
       }
     }
 
-    if (gccGames.length === 0) throw new Error('no gcc games found in wide-format CSV');
+    if (gccGames.length === 0) throw new Error('no games found for this team in the schedule sheet');
 
     // Deduplicate by date+time+away+home
     const seen = new Set();
@@ -1446,13 +1639,52 @@ async function buildSchedule() {
 
   } catch(err) {
     console.log('Schedule fetch failed:', err.message);
-    // Fall back to static data — always correct, just not auto-updating
-    renderSchedule(staticSchedule);
-    if (wrap) wrap.textContent = 'Showing saved schedule (live fetch unavailable) · Error: ' + err.message;
+    if (isGCC(TEAM_NAME)) {
+      // Fall back to GCC's saved static schedule — always correct, just not auto-updating
+      renderSchedule(staticSchedule);
+      if (wrap) wrap.textContent = 'Showing saved schedule (live fetch unavailable) · Error: ' + err.message;
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px">Schedule temporarily unavailable — check back soon, or view it on the <a href="https://www.eugenechurchsoftball.com/Schedule" target="_blank">league site</a>.</td></tr>';
+      if (wrap) wrap.textContent = 'Live fetch unavailable · Error: ' + err.message;
+    }
   }
 }
 
 // STANDINGS
+// Pulls the full list of teams in the league from the Standings sheet — this is the single
+// source of truth for the homepage dropdown and for resolving a URL slug back to a team name.
+async function fetchTeamRegistry() {
+  try {
+    const resp = await fetch('/api/schedule?gid=332134412');
+    if (!resp.ok) throw new Error('fetch failed: ' + resp.status);
+    const text = await resp.text();
+    const rows = text.trim().split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+    let headerIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].some(c => c === 'Team') && rows[i].some(c => c === 'W')) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) return [];
+    const headers = rows[headerIdx];
+    const colIdx = {};
+    headers.forEach((h, i) => { colIdx[h.trim()] = i; });
+    const teamI = colIdx['Team'] !== undefined ? colIdx['Team'] : 1;
+    const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(c => c.length > 0));
+    const seen = new Set();
+    const teams = [];
+    dataRows.forEach(row => {
+      const name = (row[teamI] || '').trim();
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      teams.push({ name, slug: slugify(name) });
+    });
+    teams.sort((a, b) => a.name.localeCompare(b.name));
+    return teams;
+  } catch (err) {
+    console.log('Team registry fetch failed:', err.message);
+    return [];
+  }
+}
+
 async function loadStandings() {
   const wrap = document.getElementById('standings-wrap');
   if (!wrap) return;
@@ -1505,8 +1737,8 @@ async function loadStandings() {
     dataRows.forEach(row => {
       if (!row[teamI]) return;
       const team = row[teamI] || '';
-      const isGcc = team.toLowerCase().includes('gospel') || team.toLowerCase().includes('gcc');
-      const rowClass = isGcc ? ' class="gcc-row"' : '';
+      const isCurrentTeam = isTeamCell(team);
+      const rowClass = isCurrentTeam ? ' class="gcc-row"' : '';
       html += '<tr' + rowClass + '>';
       html += '<td class="num">' + (row[rankI] || '') + '</td>';
       html += '<td>' + team + '</td>';
@@ -1525,23 +1757,6 @@ async function loadStandings() {
     wrap.innerHTML = '<p style="color:#888;font-size:13px;text-align:center;padding:40px 0">Unable to load standings. <a href="https://www.eugenechurchsoftball.com/Schedule" target="_blank">View on league site →</a></p>';
   }
 }
-
-// Load standings when tab is clicked
-const origShowPage = window.showPage;
-window.showPage = function(page, event) {
-  origShowPage(page, event);
-  if (page === 'standings') loadStandings();
-  if (page === 'schedule') buildSchedule();
-  if (page === 'roster') buildRoster();
-};
-
-// Also handle popstate (back/forward) data loads
-window.addEventListener('popstate', function(e) {
-  const page = (e.state && e.state.page) ? e.state.page : 'home';
-  if (page === 'schedule') buildSchedule();
-  if (page === 'standings') loadStandings();
-  if (page === 'roster') buildRoster();
-});
 </script>
 </body>
 </html>
