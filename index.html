@@ -1585,110 +1585,100 @@ async function buildSchedule() {
     const rows = parseCSV(text);
     console.log('Schedule: parsed', rows.length, 'rows');
 
-    // This sheet is a WIDE format: weeks across columns, not rows
-    // Each week block has Mon/Tue/Thu sub-columns
-    // Strategy: scan ALL cells, find date cells, then look at nearby cells for our team's games
+    // This sheet is a WIDE format: weeks across columns, with up to 3 day-blocks per row
+    // (Monday/Tuesday/Thursday), each block being [time, away, @, home]. Date-header rows and
+    // game rows don't always use the same column spacing (date rows sometimes have extra blank
+    // columns), so matching by raw column position is unreliable. Instead: every real game has
+    // exactly one literal "@" between its away and home team — find those left-to-right and
+    // match the Nth one in a row to the Nth date found in the most recent date-header row.
 
-    // First find all date strings (e.g. "Monday, June 11, 2026")
-    let currentDates = {}; // col -> date string
-    for (let ri = 0; ri < rows.length; ri++) {
-      const row = rows[ri];
-      for (let ci = 0; ci < row.length; ci++) {
-        const cell = row[ci].trim();
-        // Date pattern: contains a month name and year
-        if (/(?:January|February|March|April|May|June|July|August|September|October|November|December).*2026/.test(cell)) {
-          currentDates[ci] = cell;
+    // Extracts date strings from a row, left to right, collapsing immediately-repeated
+    // duplicates (the sheet sometimes echoes the same date across a merged-looking cell pair).
+    function extractRowDates(row) {
+      const dates = [];
+      row.forEach(cell => {
+        const c = cell.trim();
+        if (/(?:January|February|March|April|May|June|July|August|September|October|November|December).*2026/.test(c)) {
+          if (dates[dates.length - 1] !== c) dates.push(c);
         }
-      }
+      });
+      return dates;
     }
 
-    // Scans every cell for a match against the current team, in either strict (exact-only) or
-    // loose (substring-tolerant) mode. Loose mode is only used as a fallback if strict mode finds
-    // nothing — using it as the primary pass caused false-positive matches against unrelated
-    // teams whose names happened to contain a fragment of this one.
+    // Scans the whole sheet for games involving the current team, in either strict (exact-only)
+    // or loose (substring-tolerant) mode. Loose mode is only used as a fallback if strict mode
+    // finds nothing — using it as the primary pass caused false-positive matches against
+    // unrelated teams whose names happened to contain a fragment of this one.
     function scanForTeamGames(strict) {
       const found = [];
+
+      // Split the sheet into "date spans" — each span starts at a date-header row and runs
+      // until (but not including) the next date-header row, or the end of the sheet.
+      const spans = [];
+      let spanStart = null, spanDates = [];
       for (let ri = 0; ri < rows.length; ri++) {
-        const row = rows[ri];
-        for (let ci = 0; ci < row.length; ci++) {
-          const cell = row[ci].trim();
-          if (!isTeamCell(cell, strict)) continue;
-          // Found our team — look for time, opponent, and date context
-          // Time is usually in the cell before or at start of this row chunk
-          // Opponent is usually 2 cells away (time, away, @, home pattern)
-
-          // Find the time for this game (scan backwards in row)
-          let time = '';
-          for (let tc = ci - 1; tc >= Math.max(0, ci - 3); tc--) {
-            if (/\d+:\d+\s*[AP]M/.test(row[tc])) { time = row[tc]; break; }
-          }
-          if (!time) {
-            // Scan the same row from start
-            for (let tc = 0; tc < row.length; tc++) {
-              if (/\d+:\d+\s*[AP]M/.test(row[tc])) { time = row[tc]; break; }
-            }
-          }
-
-          // Determine if our team is away or home
-          // Pattern: time, away, @, home — OR — time, home, @, away
-          // Look at surrounding cells
-          let away = '', home = '';
-          const prev1 = (row[ci-1] || '').trim();
-          const prev2 = (row[ci-2] || '').trim();
-          const next1 = (row[ci+1] || '').trim();
-          const next2 = (row[ci+2] || '').trim();
-
-          if (prev1 === '@') {
-            // Our team is home: [away] @ [our team]
-            away = (row[ci-2] || '').trim();
-            home = cell;
-          } else if (next1 === '@') {
-            // Our team is away: [our team] @ [home]
-            away = cell;
-            home = (row[ci+2] || '').trim();
-          } else if (prev2 === '@') {
-            away = (row[ci-3] || '').trim();
-            home = cell;
-          } else if (next2 === '@') {
-            away = cell;
-            home = (row[ci+3] || '').trim();
-          } else {
-            away = cell; home = '';
-          }
-
-          // Find closest date to this column
-          let closestDate = '';
-          let minDist = Infinity;
-          for (const [dcol, dval] of Object.entries(currentDates)) {
-            const dist = Math.abs(parseInt(dcol) - ci);
-            if (dist < minDist) { minDist = dist; closestDate = dval; }
-          }
-
-          // Parse the date string
-          let dateKey = '';
-          try {
-            const d = new Date(closestDate.replace(/^[A-Za-z]+,\s*/, ''));
-            if (!isNaN(d)) dateKey = d.toISOString().split('T')[0];
-          } catch(e) {}
-
-          // Check for POSTPONED nearby
-          let isPostponed = false;
-          for (let pc = Math.max(0,ci-5); pc < Math.min(row.length, ci+5); pc++) {
-            if ((row[pc]||'').toUpperCase().includes('POSTPONED')) { isPostponed = true; break; }
-          }
-          // Also check adjacent rows
-          for (let pr = Math.max(0,ri-1); pr <= Math.min(rows.length-1,ri+1); pr++) {
-            for (const cell2 of rows[pr]) {
-              if ((cell2||'').toUpperCase().includes('POSTPONED')) { isPostponed = true; break; }
-            }
-          }
-
-          if (dateKey) {
-            found.push({ dateKey, time, away, home, isPostponed });
-            console.log('Found game:', dateKey, time, away, '@', home, isPostponed ? '(postponed)' : '');
-          }
+        const datesFound = extractRowDates(rows[ri]);
+        if (datesFound.length > 0) {
+          if (spanStart !== null) spans.push({ start: spanStart, end: ri - 1, dates: spanDates });
+          spanStart = ri; spanDates = datesFound;
         }
       }
+      if (spanStart !== null) spans.push({ start: spanStart, end: rows.length - 1, dates: spanDates });
+
+      spans.forEach(span => {
+        // Find every column where a "POSTPONED" note appears anywhere in this span (it's
+        // usually its own row, a line or two below the actual game rows) — so a game can be
+        // matched to it by column/block, not just row-adjacency, and won't bleed into a
+        // different day's game that happens to sit nearby.
+        const postponedCols = [];
+        for (let ri = span.start; ri <= span.end; ri++) {
+          rows[ri].forEach((cell, idx) => {
+            if ((cell || '').toUpperCase().includes('POSTPONED')) postponedCols.push(idx);
+          });
+        }
+
+        for (let ri = span.start; ri <= span.end; ri++) {
+          const row = rows[ri];
+
+          // Every "@" in this row marks one game slot, in left-to-right order.
+          const atPositions = [];
+          row.forEach((cell, idx) => { if (cell.trim() === '@') atPositions.push(idx); });
+          if (!atPositions.length) continue;
+
+          atPositions.forEach((atIdx, blockIndex) => {
+            const away = (row[atIdx - 1] || '').trim();
+            const home = (row[atIdx + 1] || '').trim();
+            if (!away || !home) return;
+            if (!isTeamCell(away, strict) && !isTeamCell(home, strict)) return;
+
+            // Time sits a cell or two before "away" — scan backward but never past the previous
+            // block's own "@", so we can't accidentally pick up a neighboring game's time.
+            let time = '';
+            const prevAt = blockIndex > 0 ? atPositions[blockIndex - 1] : -1;
+            for (let tc = atIdx - 2; tc > prevAt; tc--) {
+              if (/\d+:\d+\s*[AP]M/.test(row[tc])) { time = row[tc]; break; }
+            }
+
+            const dateStr = span.dates[blockIndex] || span.dates[span.dates.length - 1] || '';
+            let dateKey = '';
+            try {
+              const d = new Date(dateStr.replace(/^[A-Za-z]+,\s*/, ''));
+              if (!isNaN(d)) dateKey = d.toISOString().split('T')[0];
+            } catch (e) {}
+            if (!dateKey) return;
+
+            // A game counts as postponed only if a "POSTPONED..." note appeared in this exact
+            // block/column somewhere in the span — not merely nearby, so a note attached to one
+            // day's game doesn't also mark a different day's game in the same week.
+            const blockStart = atIdx - 2;
+            const isPostponed = postponedCols.some(c => c >= blockStart && c <= blockStart + 3);
+
+            found.push({ dateKey, time, away, home, isPostponed });
+            console.log('Found game:', dateKey, time, away, '@', home, isPostponed ? '(postponed)' : '');
+          });
+        }
+      });
+
       return found;
     }
 
