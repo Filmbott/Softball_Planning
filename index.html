@@ -586,7 +586,7 @@
 <div id="page-schedule" class="app-page">
   <p class="page-title">2026 Schedule</p>
   <br/>
-  <p class="note">Filtered to Gospel CC games only. Past games crossed out. Pulled live from the league schedule.</p>
+  <p class="note" id="schedule-note">Filtered to your team's games only. Past games crossed out. Pulled live from the league schedule.</p>
   <p class="standings-updated" id="schedule-wrap-status"></p>
   <div class="schedule-wrap-inner">
     <table class="schedule-table" id="schedule-table">
@@ -726,14 +726,19 @@ function updatePageChrome(teamName) {
     getFaviconLink().href = ECS_FAVICON_DATA_URL;
   }
 }
-// Matches a schedule/standings cell against whichever team is currently active. Handles
-// exact matches, GCC's various abbreviations, and loose substring matches as a fallback.
-function isTeamCell(cellText) {
+// Matches a schedule/standings cell against whichever team is currently active. Strict mode
+// (used for the initial scan of the whole schedule) only allows exact matches plus GCC's known
+// abbreviations — loose substring matching is too easy to false-positive against unrelated teams
+// whose names happen to contain a fragment of this one. Non-strict mode (used only as a
+// fallback if a strict scan finds nothing, and for classifying an already-matched game's
+// home/away fields) allows the looser substring check too.
+function isTeamCell(cellText, strict) {
   const c = (cellText || '').toLowerCase().trim();
   const t = (TEAM_NAME || '').toLowerCase().trim();
   if (!c || !t) return false;
   if (c === t) return true;
   if (isGCC(TEAM_NAME) && (c.includes('gospel') || c === 'gcc')) return true;
+  if (strict) return false;
   return c.includes(t) || t.includes(c);
 }
 
@@ -1479,6 +1484,9 @@ async function buildSchedule() {
   const wrap = document.getElementById('schedule-wrap-status');
   if (!tbody) return;
 
+  const noteEl = document.getElementById('schedule-note');
+  if (noteEl) noteEl.textContent = 'Filtered to ' + (TEAM_NAME || 'your team') + " games only. Past games crossed out. Pulled live from the league schedule.";
+
   // Show loading
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px">Loading schedule...</td></tr>';
 
@@ -1579,16 +1587,12 @@ async function buildSchedule() {
 
     // This sheet is a WIDE format: weeks across columns, not rows
     // Each week block has Mon/Tue/Thu sub-columns
-    // Strategy: scan ALL cells, find date cells, then look at nearby cells for Gospel CC games
+    // Strategy: scan ALL cells, find date cells, then look at nearby cells for our team's games
 
     // First find all date strings (e.g. "Monday, June 11, 2026")
-    // and all Gospel CC mentions, extract surrounding context
-    const gccGames = [];
     let currentDates = {}; // col -> date string
-
     for (let ri = 0; ri < rows.length; ri++) {
       const row = rows[ri];
-      // Check if this row contains date headers
       for (let ci = 0; ci < row.length; ci++) {
         const cell = row[ci].trim();
         // Date pattern: contains a month name and year
@@ -1596,15 +1600,23 @@ async function buildSchedule() {
           currentDates[ci] = cell;
         }
       }
+    }
 
-      // Check if this row contains our current team
-      for (let ci = 0; ci < row.length; ci++) {
-        const cell = row[ci].trim();
-        if (isTeamCell(cell)) {
+    // Scans every cell for a match against the current team, in either strict (exact-only) or
+    // loose (substring-tolerant) mode. Loose mode is only used as a fallback if strict mode finds
+    // nothing — using it as the primary pass caused false-positive matches against unrelated
+    // teams whose names happened to contain a fragment of this one.
+    function scanForTeamGames(strict) {
+      const found = [];
+      for (let ri = 0; ri < rows.length; ri++) {
+        const row = rows[ri];
+        for (let ci = 0; ci < row.length; ci++) {
+          const cell = row[ci].trim();
+          if (!isTeamCell(cell, strict)) continue;
           // Found our team — look for time, opponent, and date context
           // Time is usually in the cell before or at start of this row chunk
           // Opponent is usually 2 cells away (time, away, @, home pattern)
-          
+
           // Find the time for this game (scan backwards in row)
           let time = '';
           for (let tc = ci - 1; tc >= Math.max(0, ci - 3); tc--) {
@@ -1617,21 +1629,21 @@ async function buildSchedule() {
             }
           }
 
-          // Determine if Gospel CC is away or home
+          // Determine if our team is away or home
           // Pattern: time, away, @, home — OR — time, home, @, away
           // Look at surrounding cells
-          let away = '', home = '', opponent = '';
+          let away = '', home = '';
           const prev1 = (row[ci-1] || '').trim();
           const prev2 = (row[ci-2] || '').trim();
           const next1 = (row[ci+1] || '').trim();
           const next2 = (row[ci+2] || '').trim();
 
           if (prev1 === '@') {
-            // Gospel CC is home: [away] @ Gospel CC
+            // Our team is home: [away] @ [our team]
             away = (row[ci-2] || '').trim();
             home = cell;
           } else if (next1 === '@') {
-            // Gospel CC is away: Gospel CC @ [home]
+            // Our team is away: [our team] @ [home]
             away = cell;
             home = (row[ci+2] || '').trim();
           } else if (prev2 === '@') {
@@ -1672,12 +1684,16 @@ async function buildSchedule() {
           }
 
           if (dateKey) {
-            gccGames.push({ dateKey, time, away, home, isPostponed });
+            found.push({ dateKey, time, away, home, isPostponed });
             console.log('Found game:', dateKey, time, away, '@', home, isPostponed ? '(postponed)' : '');
           }
         }
       }
+      return found;
     }
+
+    let gccGames = scanForTeamGames(true);
+    if (gccGames.length === 0) gccGames = scanForTeamGames(false);
 
     if (gccGames.length === 0) throw new Error('no games found for this team in the schedule sheet');
 
